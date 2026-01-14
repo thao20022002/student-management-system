@@ -46,16 +46,16 @@
                                        {% endfor %}
                                     </select>
                                  </div>
-                                 <div class="col-md-3">
-                                    <label>Loại bài thi</label>
-                                    <select name="exam_type" class="form-control">
-                                       <option value="">Tất cả</option>
-                                       <option value="Kiểm tra" {% if request.GET.exam_type == 'Kiểm tra' %}selected{% endif %}>Kiểm tra</option>
-                                       <option value="Giữa kỳ" {% if request.GET.exam_type == 'Giữa kỳ' %}selected{% endif %}>Giữa kỳ</option>
-                                       <option value="Cuối kỳ" {% if request.GET.exam_type == 'Cuối kỳ' %}selected{% endif %}>Cuối kỳ</option>
-                                       <option value="Bài tập" {% if request.GET.exam_type == 'Bài tập' %}selected{% endif %}>Bài tập</option>
-                                    </select>
-                                 </div>
+                                    <div class="col-md-3">
+                                       <label>Loại bài thi</label>
+                                       <select name="exam_type" class="form-control">
+                                          <option value="">Tất cả</option>
+                                          <option value="Quiz" {% if request.GET.exam_type == 'Quiz' %}selected{% endif %}>Kiểm tra 15 phút</option>
+                                          <option value="Midterm" {% if request.GET.exam_type == 'Midterm' %}selected{% endif %}>Giữa kỳ</option>
+                                          <option value="Final" {% if request.GET.exam_type == 'Final' %}selected{% endif %}>Cuối kỳ</option>
+                                          <option value="Assignment" {% if request.GET.exam_type == 'Assignment' %}selected{% endif %}>Bài tập</option>
+                                       </select>
+                                    </div>
                                  <div class="col-md-3">
                                     <label>&nbsp;</label>
                                     <button type="submit" class="btn btn-primary btn-block">Lọc</button>
