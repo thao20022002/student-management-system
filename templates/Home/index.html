@@ -1,0 +1,392 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+<div class="page-wrapper">
+   <div class="content container-fluid">
+      <div class="page-header">
+         <div class="row">
+            <div class="col-sm-12">
+               <h3 class="page-title">
+                  {% if user.is_admin %}
+                     Chào mừng Admin!
+                  {% elif user.is_teacher %}
+                     Chào mừng Giáo viên!
+                  {% else %}
+                     Chào mừng!
+                  {% endif %}
+               </h3>
+               <ul class="breadcrumb">
+                  <li class="breadcrumb-item active">Trang chủ</li>
+               </ul>
+            </div>
+         </div>
+      </div>
+      
+      {% if user.is_admin or user.is_teacher %}
+      <!-- Dropdown chọn lớp -->
+      <div class="row mb-3">
+         <div class="col-md-12">
+            <div class="card">
+               <div class="card-body">
+                  <form method="GET" action="{% url 'dashboard' %}" id="class-filter-form">
+                     <div class="row align-items-center">
+                        <div class="col-md-3">
+                           <label for="class-select" class="form-label"><strong>Chọn lớp để xem tổng quan:</strong></label>
+                        </div>
+                        <div class="col-md-6">
+                           <select name="class_id" id="class-select" class="form-control" onchange="this.form.submit()">
+                              <option value="">-- Tất cả các lớp --</option>
+                              {% for class_obj in all_classes %}
+                                 <option value="{{ class_obj.id }}" {% if selected_class and selected_class.id == class_obj.id %}selected{% endif %}>
+                                    {{ class_obj.class_name }} - {{ class_obj.grade_level }}
+                                 </option>
+                              {% endfor %}
+                           </select>
+                        </div>
+                        <div class="col-md-3">
+                           {% if selected_class %}
+                              <span class="badge badge-info">Đang xem: {{ selected_class.class_name }}</span>
+                           {% else %}
+                              <span class="badge badge-success">Đang xem: Tất cả các lớp</span>
+                           {% endif %}
+                        </div>
+                     </div>
+                  </form>
+               </div>
+            </div>
+         </div>
+      </div>
+      
+      <!-- Thống kê tổng quan -->
+      <div class="row">
+         <div class="col-xl-3 col-sm-6 col-12 d-flex">
+            <div class="card bg-one w-100">
+               <div class="card-body">
+                  <div class="db-widgets d-flex justify-content-between align-items-center">
+                     <div class="db-icon">
+                        <i class="fas fa-user-graduate"></i>
+                     </div>
+                     <div class="db-info">
+                        <h3>{{ total_students|default:0 }}</h3>
+                        <h6>Tổng số học sinh</h6>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="col-xl-3 col-sm-6 col-12 d-flex">
+            <div class="card bg-two w-100">
+               <div class="card-body">
+                  <div class="db-widgets d-flex justify-content-between align-items-center">
+                     <div class="db-icon">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                     </div>
+                     <div class="db-info">
+                        <h3>{{ total_teachers|default:0 }}</h3>
+                        <h6>Tổng số giáo viên</h6>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="col-xl-3 col-sm-6 col-12 d-flex">
+            <div class="card bg-three w-100">
+               <div class="card-body">
+                  <div class="db-widgets d-flex justify-content-between align-items-center">
+                     <div class="db-icon">
+                        <i class="fas fa-building"></i>
+                     </div>
+                     <div class="db-info">
+                        <h3>{{ total_classes|default:0 }}</h3>
+                        <h6>Tổng số lớp học</h6>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="col-xl-3 col-sm-6 col-12 d-flex">
+            <div class="card bg-four w-100">
+               <div class="card-body">
+                  <div class="db-widgets d-flex justify-content-between align-items-center">
+                     <div class="db-icon">
+                        <i class="fas fa-book"></i>
+                     </div>
+                     <div class="db-info">
+                        <h3>{{ total_subjects|default:0 }}</h3>
+                        <h6>Tổng số môn học</h6>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      
+      <!-- Thống kê chi tiết -->
+      <div class="row">
+         <div class="col-xl-3 col-sm-6 col-12 d-flex">
+            <div class="card bg-five w-100">
+               <div class="card-body">
+                  <div class="db-widgets d-flex justify-content-between align-items-center">
+                     <div class="db-icon">
+                        <i class="fas fa-check-circle"></i>
+                     </div>
+                     <div class="db-info">
+                        <h3>{{ attendance_rate|default:0 }}%</h3>
+                        <h6>Tỷ lệ điểm danh (30 ngày)</h6>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="col-xl-3 col-sm-6 col-12 d-flex">
+            <div class="card bg-six w-100">
+               <div class="card-body">
+                  <div class="db-widgets d-flex justify-content-between align-items-center">
+                     <div class="db-icon">
+                        <i class="fas fa-star"></i>
+                     </div>
+                     <div class="db-info">
+                        <h3>{{ avg_score|default:0 }}</h3>
+                        <h6>Điểm trung bình (30 ngày)</h6>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="col-xl-3 col-sm-6 col-12 d-flex">
+            <div class="card bg-seven w-100">
+               <div class="card-body">
+                  <div class="db-widgets d-flex justify-content-between align-items-center">
+                     <div class="db-icon">
+                        <i class="fas fa-clipboard-check"></i>
+                     </div>
+                     <div class="db-info">
+                        <h3>{{ present_count|default:0 }}/{{ total_attendance|default:0 }}</h3>
+                        <h6>Điểm danh có mặt</h6>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="col-xl-3 col-sm-6 col-12 d-flex">
+            <div class="card bg-eight w-100">
+               <div class="card-body">
+                  <div class="db-widgets d-flex justify-content-between align-items-center">
+                     <div class="db-icon">
+                        <i class="fas fa-file-alt"></i>
+                     </div>
+                     <div class="db-info">
+                        <h3>{{ total_grades|default:0 }}</h3>
+                        <h6>Tổng số điểm (30 ngày)</h6>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      
+      <!-- Biểu đồ phân tích -->
+      <div class="row">
+         <!-- Biểu đồ 1: Phân bố học sinh theo lớp (Pie Chart) -->
+         <div class="col-md-12 col-lg-6">
+            <div class="card card-chart">
+               <div class="card-header">
+                  <h5 class="card-title">Phân bố học sinh theo lớp</h5>
+               </div>
+               <div class="card-body">
+                  <div id="chart-class-distribution"></div>
+               </div>
+            </div>
+         </div>
+         
+         <!-- Biểu đồ 2: Điểm trung bình theo môn học (Bar Chart) -->
+         <div class="col-md-12 col-lg-6">
+            <div class="card card-chart">
+               <div class="card-header">
+                  <h5 class="card-title">Điểm trung bình theo môn học</h5>
+               </div>
+               <div class="card-body">
+                  <div id="chart-subject-grades"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+      
+      <div class="row">
+         <!-- Biểu đồ 3: Phân bố điểm số (Pie Chart) -->
+         <div class="col-md-12 col-lg-6">
+            <div class="card card-chart">
+               <div class="card-header">
+                  <h5 class="card-title">Phân bố điểm số</h5>
+               </div>
+               <div class="card-body">
+                  <div id="chart-grade-distribution"></div>
+               </div>
+            </div>
+         </div>
+         
+         <!-- Biểu đồ 4: Tỷ lệ điểm danh (7 ngày gần nhất) (Line Chart) -->
+         <div class="col-md-12 col-lg-6">
+            <div class="card card-chart">
+               <div class="card-header">
+                  <h5 class="card-title">Tỷ lệ điểm danh (7 ngày gần nhất)</h5>
+               </div>
+               <div class="card-body">
+                  <div id="chart-attendance"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+      
+      <div class="row">
+         <!-- Biểu đồ 5: Phân bố học sinh theo giới tính (Pie Chart) -->
+         <div class="col-md-12 col-lg-6">
+            <div class="card card-chart">
+               <div class="card-header">
+                  <h5 class="card-title">Phân bố học sinh theo giới tính</h5>
+               </div>
+               <div class="card-body">
+                  <div id="chart-gender-distribution"></div>
+               </div>
+            </div>
+         </div>
+         
+         <!-- Biểu đồ 6: Số lượng học sinh theo lớp (Bar Chart) -->
+         <div class="col-md-12 col-lg-6">
+            <div class="card card-chart">
+               <div class="card-header">
+                  <h5 class="card-title">Số lượng học sinh theo lớp</h5>
+               </div>
+               <div class="card-body">
+                  <div id="chart-class-student-count"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+      
+      <!-- Top học sinh và Hoạt động -->
+      <div class="row">
+         <div class="col-md-6 d-flex">
+            <div class="card flex-fill">
+               <div class="card-header">
+                  <h5 class="card-title">Học sinh xuất sắc</h5>
+               </div>
+               <div class="card-body">
+                  <div class="table-responsive">
+                     <table class="table table-hover table-center">
+                        <thead class="thead-light">
+                           <tr>
+                              <th>Mã HS</th>
+                              <th>Họ và tên</th>
+                              <th class="text-center">Lớp</th>
+                              <th class="text-center">Điểm TB</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           {% if top_students %}
+                              {% for student in top_students %}
+                              <tr>
+                                 <td class="text-nowrap">
+                                    <div>{{ student.student_id }}</div>
+                                 </td>
+                                 <td class="text-nowrap">{{ student.first_name }} {{ student.last_name }}</td>
+                                 <td class="text-center">
+                                    {% if student.student_class %}{{ student.student_class.class_name }}{% else %}-{% endif %}
+                                 </td>
+                                 <td class="text-center">
+                                    <strong>{{ student.avg_grade|floatformat:2 }}</strong>
+                                 </td>
+                              </tr>
+                              {% endfor %}
+                           {% else %}
+                              <tr>
+                                 <td colspan="4" class="text-center">Chưa có dữ liệu</td>
+                              </tr>
+                           {% endif %}
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="col-md-6 d-flex">
+            <div class="card flex-fill">
+               <div class="card-header">
+                  <h5 class="card-title">Thống kê lớp học</h5>
+               </div>
+               <div class="card-body">
+                  <div class="table-responsive">
+                     <table class="table table-hover table-center">
+                        <thead class="thead-light">
+                           <tr>
+                              <th>Tên lớp</th>
+                              <th class="text-center">Số HS</th>
+                              <th class="text-center">Sức chứa</th>
+                              <th class="text-center">Tỷ lệ</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           {% if class_stats %}
+                              {% for stat in class_stats %}
+                              <tr>
+                                 <td class="text-nowrap">{{ stat.class.class_name }}</td>
+                                 <td class="text-center">{{ stat.student_count }}</td>
+                                 <td class="text-center">{{ stat.capacity }}</td>
+                                 <td class="text-center">
+                                    <span class="badge {% if stat.fill_rate >= 90 %}badge-danger{% elif stat.fill_rate >= 70 %}badge-warning{% else %}badge-success{% endif %}">
+                                       {{ stat.fill_rate }}%
+                                    </span>
+                                 </td>
+                              </tr>
+                              {% endfor %}
+                           {% else %}
+                              <tr>
+                                 <td colspan="4" class="text-center">Chưa có dữ liệu</td>
+                              </tr>
+                           {% endif %}
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      {% else %}
+      <!-- Dashboard cho học sinh -->
+      <div class="row">
+         <div class="col-md-12">
+            <div class="card">
+               <div class="card-body">
+                  <h4>Chào mừng {{ user.get_full_name|default:user.username }}!</h4>
+                  <p>Đây là trang bảng điều khiển của bạn. Bạn có thể xem thông tin điểm số, điểm danh và các thông tin khác từ menu bên trái.</p>
+               </div>
+            </div>
+         </div>
+      </div>
+      {% endif %}
+   </div>
+   <footer>
+      <p>by: Ngo Duc Thao</p>
+   </footer>
+</div>
+
+<script src="{% static 'assets/js/jquery-3.6.0.min.js' %}"></script>
+<script src="{% static 'assets/js/popper.min.js' %}"></script>
+<script src="{% static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+<script src="{% static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+<script src="{% static 'assets/plugins/apexchart/apexcharts.min.js' %}"></script>
+
+{% if user.is_admin or user.is_teacher %}
+<script id="class-distribution" type="application/json">{{ class_distribution|safe }}</script>
+<script id="subject-avg-grades" type="application/json">{{ subject_avg_grades|safe }}</script>
+<script id="grade-distribution" type="application/json">{{ grade_distribution|safe }}</script>
+<script id="attendance-chart-data" type="application/json">{{ attendance_chart_data|safe }}</script>
+<script id="attendance-chart-labels" type="application/json">{{ attendance_chart_labels|safe }}</script>
+<script id="gender-distribution" type="application/json">{{ gender_distribution|safe }}</script>
+<script id="class-student-count" type="application/json">{{ class_student_count|safe }}</script>
+{% endif %}
+
+<script src="{% static 'assets/plugins/apexchart/chart-data.js' %}"></script>
+<script src="{% static 'assets/js/script.js' %}"></script>
+{% endblock %}

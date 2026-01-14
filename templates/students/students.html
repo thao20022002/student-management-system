@@ -1,0 +1,116 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+   
+         <div class="page-wrapper">
+            <div class="content container-fluid">
+               <div class="page-header">
+                  <div class="row align-items-center">
+                     <div class="col">
+                        <h3 class="page-title">{% trans "Students" %}</h3>
+                        <ul class="breadcrumb">
+                           <li class="breadcrumb-item"><a href="">{% trans "Dashboard" %}</a></li>
+                           <li class="breadcrumb-item active">{% trans "Students" %}</li>
+                        </ul>
+                     </div>
+                     <div class="col-auto text-right float-right ml-auto">
+                        <a href="{% url 'export_students_excel' %}{% if selected_class %}?class={{ selected_class.pk }}{% endif %}" class="btn btn-outline-primary mr-2"><i class="fas fa-download"></i> {% trans "Download" %}</a>
+                        <a href="{% url 'add_student' %}" class="btn btn-primary"><i class="fas fa-plus"></i></a>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-sm-12">
+                     <div class="card card-table">
+                        <div class="card-body">
+                           <form method="GET" class="mb-3">
+                              <div class="row">
+                                 <div class="col-md-4">
+                                    <label>Lớp học</label>
+                                    <select name="class" class="form-control" onchange="this.form.submit()">
+                                       <option value="">Tất cả các lớp</option>
+                                       {% for c in all_classes %}
+                                       <option value="{{ c.pk }}" {% if selected_class and selected_class.pk == c.pk %}selected{% endif %}>{{ c.class_name }}</option>
+                                       {% endfor %}
+                                    </select>
+                                 </div>
+                              </div>
+                           </form>
+                           <div class="table-responsive">
+                              <table class="table table-hover table-center mb-0 datatable">
+                                 <thead>
+                                    <tr>
+                                       <th>STT</th>
+                                       <th>{% trans "ID" %}</th>
+                                       <th>{% trans "Name" %}</th>
+                                       <th>{% trans "Class" %}</th>
+                                       <th>{% trans "DOB" %}</th>
+                                       <th>{% trans "Parent Name" %}</th>
+                                       <th>{% trans "Mobile Number" %}</th>
+                                       <th>{% trans "Address" %}</th>
+                                       <th class="text-right">{% trans "Action" %}</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {% for student in student_list %}
+                                    <tr>
+                                       <td>{{ forloop.counter }}</td>
+                                       <td>{{ student.student_id}}</td>
+                                       <td>
+                                          <h2 class="table-avatar">
+                                             {% if student.student_image %}
+                                             <a href="{% url 'view_student' student.pk %}" class="avatar avatar-sm mr-2">
+                                                <img class="avatar-img rounded-circle" src="{{ student.student_image.url }}" alt="User Image">
+                                             </a>
+                                             {% endif %}
+                                             <a href="{% url 'view_student' student.pk %}">{{ student.first_name }} {{ student.last_name}}</a>
+                                          </h2>
+                                       </td>
+                                       <td>{% if student.student_class %}{{ student.student_class.class_name }}{% else %}-{% endif %}</td>
+                                       <td>{{ student.date_of_birth|date:"d M Y" }}</td>
+                                       <td>{{ student.parent.father_name }} / {{ student.parent.mother_name }}</td>
+                                       <td>{{ student.mobile_number }}</td>
+                                       <td>{{ student.parent.present_address }}</td>
+                                       <td class="text-right">
+                                          <div class="actions">
+                                             {% if user.is_admin %}
+                                             <a href="{% url 'edit_student' student.pk %}" class="btn btn-sm bg-success-light mr-2">
+                                                 <i class="fas fa-pen"></i>
+                                             </a>
+                                             <form action="{% url 'delete_student' student.pk %}" method="POST" style="display:inline;">
+                                                 {% csrf_token %}
+                                                 <button type="submit" class="btn btn-sm bg-danger-light" onclick="return confirm('{% trans "Are you sure you want to delete this student?" %}');">
+                                                     <i class="fas fa-trash"></i>
+                                                 </button>
+                                             </form>
+                                             {% endif %}
+                                         </div>
+                                       </td>
+                                    </tr>
+                                    {% endfor %}
+                                 </tbody>
+                              </table>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+            <footer>
+               <p>Copyright © thaodeptrai</p>
+            </footer>
+         </div>
+      </div>
+      <script src="{%static 'assets/js/jquery-3.6.0.min.js' %}"></script>
+      <script src="{%static 'assets/js/popper.min.js' %}"></script>
+      <script src="{%static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+      <script src="{%static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+      <script src="{%static 'assets/plugins/datatables/datatables.min.js' %}"></script>
+      <script src="{%static 'assets/js/script.js' %}"></script>
+   </body>
+   <!-- Mirrored from preschool.dreamguystech.com/html-template/students.html by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 28 Oct 2021 11:11:49 GMT -->
+</html>
+
+
+{% endblock %}

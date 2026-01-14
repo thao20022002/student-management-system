@@ -1,0 +1,101 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+   
+         <div class="page-wrapper">
+            <div class="content container-fluid">
+               <div class="page-header">
+                  <div class="row align-items-center">
+                     <div class="col">
+                        <h3 class="page-title">{% trans "Edit Grade" %}</h3>
+                        <ul class="breadcrumb">
+                           <li class="breadcrumb-item"><a href="{% url 'grade_list' %}">{% trans "Grades" %}</a></li>
+                           <li class="breadcrumb-item active">{% trans "Edit Grade" %}</li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-sm-12">
+                     <div class="card">
+                        <div class="card-body">
+                           <form method="POST">
+                              {% csrf_token %}
+                              <div class="row">
+                                 <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                       <label>{% trans "Student" %}</label>
+                                       <select class="form-control" name="student" required>
+                                          {% for student in students %}
+                                          <option value="{{ student.id }}" {% if grade.student.id == student.id %}selected{% endif %}>{{ student.first_name }} {{ student.last_name }} ({{ student.student_id }})</option>
+                                          {% endfor %}
+                                       </select>
+                                    </div>
+                                 </div>
+                                 <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                       <label>{% trans "Subject" %}</label>
+                                       <select class="form-control" name="subject" required>
+                                          {% for subject in subjects %}
+                                          <option value="{{ subject.id }}" {% if grade.subject.id == subject.id %}selected{% endif %}>{{ subject.subject_name }}</option>
+                                          {% endfor %}
+                                       </select>
+                                    </div>
+                                 </div>
+                                 <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                       <label>{% trans "Exam Type" %}</label>
+                                       <select class="form-control" name="exam_type" required>
+                                          <option value="Quiz" {% if grade.exam_type == 'Quiz' %}selected{% endif %}>{% trans "Quiz" %}</option>
+                                          <option value="Midterm" {% if grade.exam_type == 'Midterm' %}selected{% endif %}>{% trans "Midterm" %}</option>
+                                          <option value="Final" {% if grade.exam_type == 'Final' %}selected{% endif %}>{% trans "Final" %}</option>
+                                          <option value="Assignment" {% if grade.exam_type == 'Assignment' %}selected{% endif %}>{% trans "Assignment" %}</option>
+                                       </select>
+                                    </div>
+                                 </div>
+                                 <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                       <label>{% trans "Exam Date" %}</label>
+                                       <input type="date" class="form-control" name="exam_date" value="{{ grade.exam_date|date:'Y-m-d' }}" required>
+                                    </div>
+                                 </div>
+                                 <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                       <label>{% trans "Score" %}</label>
+                                       <input type="number" step="0.01" class="form-control" name="score" value="{{ grade.score }}" required>
+                                    </div>
+                                 </div>
+                                 <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                       <label>{% trans "Max Score" %}</label>
+                                       <input type="number" step="0.01" class="form-control" name="max_score" value="{{ grade.max_score }}" required>
+                                    </div>
+                                 </div>
+                                 <div class="col-12">
+                                    <div class="form-group">
+                                       <label>{% trans "Remarks" %}</label>
+                                       <textarea class="form-control" name="remarks" rows="3">{{ grade.remarks }}</textarea>
+                                    </div>
+                                 </div>
+                                 <div class="col-12">
+                                    <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
+                                    <a href="{% url 'grade_list' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+                                 </div>
+                              </div>
+                           </form>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+{% endblock %}
+
+
+
+
+
+
+

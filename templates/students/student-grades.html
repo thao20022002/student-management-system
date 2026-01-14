@@ -1,0 +1,108 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+   
+         <div class="page-wrapper">
+            <div class="content container-fluid">
+               <div class="page-header">
+                  <div class="row">
+                     <div class="col-sm-12">
+                        <h3 class="page-title">{% trans "Student Grades" %} - {{ student.first_name }} {{ student.last_name }}</h3>
+                        <ul class="breadcrumb">
+                           <li class="breadcrumb-item"><a href="{% url 'student_list' %}">{% trans "Students" %}</a></li>
+                           <li class="breadcrumb-item active">{% trans "Grades" %}</li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-md-12">
+                     <div class="card">
+                        <div class="card-header">
+                           <h5 class="card-title">{% trans "Subject Statistics" %}</h5>
+                        </div>
+                        <div class="card-body">
+                           <div class="table-responsive">
+                              <table class="table table-hover">
+                                 <thead>
+                                    <tr>
+                                       <th>STT</th>
+                                       <th>{% trans "Subject" %}</th>
+                                       <th>{% trans "Average Score" %}</th>
+                                       <th>{% trans "Number of Exams" %}</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {% for stat in subject_stats %}
+                                    <tr>
+                                       <td>{{ forloop.counter }}</td>
+                                       <td>{{ stat.subject.subject_name }}</td>
+                                       <td>{{ stat.average }}</td>
+                                       <td>{{ stat.count }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                       <td colspan="4" class="text-center">{% trans "No grades found" %}</td>
+                                    </tr>
+                                    {% endfor %}
+                                 </tbody>
+                              </table>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-md-12">
+                     <div class="card">
+                        <div class="card-header">
+                           <h5 class="card-title">{% trans "All Grades" %}</h5>
+                        </div>
+                        <div class="card-body">
+                           <div class="table-responsive">
+                              <table class="table table-hover">
+                                 <thead>
+                                    <tr>
+                                       <th>STT</th>
+                                       <th>{% trans "Subject" %}</th>
+                                       <th>{% trans "Exam Type" %}</th>
+                                       <th>{% trans "Score" %}</th>
+                                       <th>{% trans "Grade" %}</th>
+                                       <th>{% trans "Exam Date" %}</th>
+                                       <th>{% trans "Remarks" %}</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {% for grade in grades %}
+                                    <tr>
+                                       <td>{{ forloop.counter }}</td>
+                                       <td>{{ grade.subject.subject_name }}</td>
+                                       <td>{{ grade.get_exam_type_display }}</td>
+                                       <td>{{ grade.score }}/{{ grade.max_score }}</td>
+                                       <td><span class="badge badge-{% if grade.grade_letter == 'A+' or grade.grade_letter == 'A' %}success{% elif grade.grade_letter == 'B+' or grade.grade_letter == 'B' %}info{% elif grade.grade_letter == 'C+' or grade.grade_letter == 'C' %}warning{% else %}danger{% endif %}">{{ grade.grade_letter }}</span></td>
+                                       <td>{{ grade.exam_date|date:"d/m/Y" }}</td>
+                                       <td>{{ grade.remarks }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                       <td colspan="7" class="text-center">{% trans "No grades found" %}</td>
+                                    </tr>
+                                    {% endfor %}
+                                 </tbody>
+                              </table>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+{% endblock %}
+
+
+
+
+
+

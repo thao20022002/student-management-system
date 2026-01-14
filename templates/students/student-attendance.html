@@ -1,0 +1,114 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+   
+         <div class="page-wrapper">
+            <div class="content container-fluid">
+               <div class="page-header">
+                  <div class="row">
+                     <div class="col-sm-12">
+                        <h3 class="page-title">{% trans "Student Attendance" %} - {{ student.first_name }} {{ student.last_name }}</h3>
+                        <ul class="breadcrumb">
+                           <li class="breadcrumb-item"><a href="{% url 'student_list' %}">{% trans "Students" %}</a></li>
+                           <li class="breadcrumb-item active">{% trans "Attendance" %}</li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-md-12">
+                     <div class="card">
+                        <div class="card-header">
+                           <h5 class="card-title">{% trans "Attendance Statistics" %}</h5>
+                        </div>
+                        <div class="card-body">
+                           <div class="row">
+                              <div class="col-md-3">
+                                 <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                       <h3>{{ present_count }}</h3>
+                                       <p>{% trans "Present" %}</p>
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="col-md-3">
+                                 <div class="card bg-danger text-white">
+                                    <div class="card-body text-center">
+                                       <h3>{{ absent_count }}</h3>
+                                       <p>{% trans "Absent" %}</p>
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="col-md-3">
+                                 <div class="card bg-warning text-white">
+                                    <div class="card-body text-center">
+                                       <h3>{{ late_count }}</h3>
+                                       <p>{% trans "Late" %}</p>
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="col-md-3">
+                                 <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                       <h3>{{ attendance_rate }}%</h3>
+                                       <p>{% trans "Attendance Rate" %}</p>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-md-12">
+                     <div class="card">
+                        <div class="card-header">
+                           <h5 class="card-title">{% trans "Attendance Records" %}</h5>
+                        </div>
+                        <div class="card-body">
+                           <div class="table-responsive">
+                              <table class="table table-hover">
+                                 <thead>
+                                    <tr>
+                                       <th>STT</th>
+                                       <th>{% trans "Date" %}</th>
+                                       <th>{% trans "Status" %}</th>
+                                       <th>{% trans "Remarks" %}</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {% for attendance in attendances %}
+                                    <tr>
+                                       <td>{{ forloop.counter }}</td>
+                                       <td>{{ attendance.date|date:"d/m/Y" }}</td>
+                                       <td>
+                                          <span class="badge badge-{% if attendance.status == 'Present' %}success{% elif attendance.status == 'Absent' %}danger{% elif attendance.status == 'Late' %}warning{% else %}info{% endif %}">
+                                             {{ attendance.get_status_display }}
+                                          </span>
+                                       </td>
+                                       <td>{{ attendance.remarks }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                       <td colspan="4" class="text-center">{% trans "No attendance records found" %}</td>
+                                    </tr>
+                                    {% endfor %}
+                                 </tbody>
+                              </table>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+{% endblock %}
+
+
+
+
+
+

@@ -1,0 +1,481 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-12-09 18:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Authentication pages
+msgid "Login"
+msgstr "Đăng nhập"
+
+msgid "Access to our dashboard"
+msgstr "Truy cập vào bảng điều khiển"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Password"
+msgstr "Mật khẩu"
+
+msgid "Forgot Password?"
+msgstr "Quên mật khẩu?"
+
+msgid "or"
+msgstr "hoặc"
+
+msgid "Login with"
+msgstr "Đăng nhập bằng"
+
+msgid "Don't have an account?"
+msgstr "Chưa có tài khoản?"
+
+msgid "Register"
+msgstr "Đăng ký"
+
+msgid "First Name"
+msgstr "Tên"
+
+msgid "Last Name"
+msgstr "Họ"
+
+msgid "Confirm Password"
+msgstr "Xác nhận mật khẩu"
+
+msgid "Student"
+msgstr "Học sinh"
+
+msgid "Teacher"
+msgstr "Giáo viên"
+
+msgid "Admin"
+msgstr "Quản trị viên"
+
+msgid "Register with"
+msgstr "Đăng ký bằng"
+
+msgid "Already have an account?"
+msgstr "Đã có tài khoản?"
+
+msgid "Forgot Password"
+msgstr "Quên mật khẩu"
+
+msgid "Enter your email to get a password reset link"
+msgstr "Nhập email của bạn để nhận liên kết đặt lại mật khẩu"
+
+msgid "Reset Password"
+msgstr "Đặt lại mật khẩu"
+
+msgid "Remember your password?"
+msgstr "Nhớ mật khẩu của bạn?"
+
+msgid "Enter a new password to reset your account"
+msgstr "Nhập mật khẩu mới để đặt lại tài khoản của bạn"
+
+msgid "New Password"
+msgstr "Mật khẩu mới"
+
+msgid "Back to"
+msgstr "Quay lại"
+
+# Dashboard and navigation
+msgid "Search here"
+msgstr "Tìm kiếm ở đây"
+
+msgid "Notifications"
+msgstr "Thông báo"
+
+msgid "Clear All"
+msgstr "Xóa tất cả"
+
+msgid "View all Notifications"
+msgstr "Xem tất cả thông báo"
+
+msgid "Administrator"
+msgstr "Quản trị viên"
+
+msgid "My Profile"
+msgstr "Hồ sơ của tôi"
+
+msgid "Inbox"
+msgstr "Hộp thư đến"
+
+msgid "Logout"
+msgstr "Đăng xuất"
+
+msgid "Main Menu"
+msgstr "Menu chính"
+
+msgid "Dashboard"
+msgstr "Bảng điều khiển"
+
+msgid "Admin Dashboard"
+msgstr "Bảng điều khiển quản trị"
+
+msgid "Teacher Dashboard"
+msgstr "Bảng điều khiển giáo viên"
+
+msgid "Student Dashboard"
+msgstr "Bảng điều khiển học sinh"
+
+msgid "Students"
+msgstr "Học sinh"
+
+msgid "Student List"
+msgstr "Danh sách học sinh"
+
+msgid "Student View"
+msgstr "Xem học sinh"
+
+msgid "Student Add"
+msgstr "Thêm học sinh"
+
+msgid "Student Edit"
+msgstr "Chỉnh sửa học sinh"
+
+# Student pages
+msgid "Add Students"
+msgstr "Thêm học sinh"
+
+msgid "Edit Students"
+msgstr "Chỉnh sửa học sinh"
+
+msgid "Student Details"
+msgstr "Chi tiết học sinh"
+
+msgid "ID"
+msgstr "Mã số"
+
+msgid "Name"
+msgstr "Tên"
+
+msgid "Class"
+msgstr "Lớp"
+
+msgid "DOB"
+msgstr "Ngày sinh"
+
+msgid "Parent Name"
+msgstr "Tên phụ huynh"
+
+msgid "Mobile Number"
+msgstr "Số điện thoại"
+
+msgid "Address"
+msgstr "Địa chỉ"
+
+msgid "Action"
+msgstr "Thao tác"
+
+msgid "Download"
+msgstr "Tải xuống"
+
+msgid "Are you sure you want to delete this student?"
+msgstr "Bạn có chắc chắn muốn xóa học sinh này không?"
+
+msgid "Student Information"
+msgstr "Thông tin học sinh"
+
+msgid "Student Id"
+msgstr "Mã học sinh"
+
+msgid "Gender"
+msgstr "Giới tính"
+
+msgid "Select Gender"
+msgstr "Chọn giới tính"
+
+msgid "Female"
+msgstr "Nữ"
+
+msgid "Male"
+msgstr "Nam"
+
+msgid "Others"
+msgstr "Khác"
+
+msgid "Date of Birth"
+msgstr "Ngày sinh"
+
+msgid "Religion"
+msgstr "Tôn giáo"
+
+msgid "Joining Date"
+msgstr "Ngày nhập học"
+
+msgid "Admission Number"
+msgstr "Số nhập học"
+
+msgid "Section"
+msgstr "Khối"
+
+msgid "Student Image"
+msgstr "Ảnh học sinh"
+
+msgid "Parent Information"
+msgstr "Thông tin phụ huynh"
+
+msgid "Father's Name"
+msgstr "Tên cha"
+
+msgid "Father's Occupation"
+msgstr "Nghề nghiệp cha"
+
+msgid "Father's Mobile"
+msgstr "Số điện thoại cha"
+
+msgid "Father's Email"
+msgstr "Email cha"
+
+msgid "Mother's Name"
+msgstr "Tên mẹ"
+
+msgid "Mother's Occupation"
+msgstr "Nghề nghiệp mẹ"
+
+msgid "Mother's Mobile"
+msgstr "Số điện thoại mẹ"
+
+msgid "Mother's Email"
+msgstr "Email mẹ"
+
+msgid "Present Address"
+msgstr "Địa chỉ hiện tại"
+
+msgid "Permanent Address"
+msgstr "Địa chỉ thường trú"
+
+msgid "Submit"
+msgstr "Gửi"
+
+msgid "Welcome Admin!"
+msgstr "Chào mừng Quản trị viên!"
+
+msgid "Welcome Bruklin!"
+msgstr "Chào mừng Bruklin!"
+
+# New features
+msgid "Classes"
+msgstr "Lớp học"
+
+msgid "Class List"
+msgstr "Danh sách lớp"
+
+msgid "Add Class"
+msgstr "Thêm lớp"
+
+msgid "Subjects"
+msgstr "Môn học"
+
+msgid "Subject List"
+msgstr "Danh sách môn học"
+
+msgid "Add Subject"
+msgstr "Thêm môn học"
+
+msgid "Grades"
+msgstr "Điểm số"
+
+msgid "Grade List"
+msgstr "Danh sách điểm"
+
+msgid "Add Grade"
+msgstr "Thêm điểm"
+
+msgid "Attendance"
+msgstr "Điểm danh"
+
+msgid "Attendance List"
+msgstr "Danh sách điểm danh"
+
+msgid "Add Attendance"
+msgstr "Thêm điểm danh"
+
+msgid "Reports"
+msgstr "Báo cáo"
+
+msgid "Class Name"
+msgstr "Tên lớp"
+
+msgid "Class Code"
+msgstr "Mã lớp"
+
+msgid "Grade Level"
+msgstr "Khối"
+
+msgid "Capacity"
+msgstr "Sĩ số tối đa"
+
+msgid "Class Teacher"
+msgstr "Giáo viên chủ nhiệm"
+
+msgid "Select Class"
+msgstr "Chọn lớp"
+
+msgid "Select Teacher"
+msgstr "Chọn giáo viên"
+
+msgid "Select Subject"
+msgstr "Chọn môn học"
+
+msgid "Select Student"
+msgstr "Chọn học sinh"
+
+msgid "Edit Class"
+msgstr "Chỉnh sửa lớp"
+
+msgid "Edit Subject"
+msgstr "Chỉnh sửa môn học"
+
+msgid "Edit Grade"
+msgstr "Chỉnh sửa điểm"
+
+msgid "Edit Attendance"
+msgstr "Chỉnh sửa điểm danh"
+
+msgid "Subject Name"
+msgstr "Tên môn học"
+
+msgid "Subject Code"
+msgstr "Mã môn học"
+
+msgid "Description"
+msgstr "Mô tả"
+
+msgid "Exam Type"
+msgstr "Loại kiểm tra"
+
+msgid "Exam Date"
+msgstr "Ngày thi"
+
+msgid "Remarks"
+msgstr "Ghi chú"
+
+msgid "Date"
+msgstr "Ngày"
+
+msgid "Status"
+msgstr "Trạng thái"
+
+msgid "Present"
+msgstr "Có mặt"
+
+msgid "Absent"
+msgstr "Vắng mặt"
+
+msgid "Late"
+msgstr "Đi muộn"
+
+msgid "Excused"
+msgstr "Có phép"
+
+msgid "All Students"
+msgstr "Tất cả học sinh"
+
+msgid "All Subjects"
+msgstr "Tất cả môn học"
+
+msgid "All Exam Types"
+msgstr "Tất cả loại kiểm tra"
+
+msgid "All Classes"
+msgstr "Tất cả lớp"
+
+msgid "All Status"
+msgstr "Tất cả trạng thái"
+
+msgid "Filter"
+msgstr "Lọc"
+
+msgid "Reset"
+msgstr "Đặt lại"
+
+msgid "Cancel"
+msgstr "Hủy"
+
+msgid "No classes found"
+msgstr "Không tìm thấy lớp nào"
+
+msgid "No subjects found"
+msgstr "Không tìm thấy môn học nào"
+
+msgid "No grades found"
+msgstr "Không tìm thấy điểm nào"
+
+msgid "No attendance records found"
+msgstr "Không tìm thấy bản ghi điểm danh nào"
+
+msgid "No students found"
+msgstr "Không tìm thấy học sinh nào"
+
+msgid "Are you sure you want to delete this class?"
+msgstr "Bạn có chắc chắn muốn xóa lớp này không?"
+
+msgid "Are you sure you want to delete this subject?"
+msgstr "Bạn có chắc chắn muốn xóa môn học này không?"
+
+msgid "Are you sure you want to delete this grade?"
+msgstr "Bạn có chắc chắn muốn xóa điểm này không?"
+
+msgid "Are you sure you want to delete this attendance?"
+msgstr "Bạn có chắc chắn muốn xóa điểm danh này không?"
+
+msgid "Total Students"
+msgstr "Tổng số học sinh"
+
+msgid "Total Classes"
+msgstr "Tổng số lớp"
+
+msgid "Total Subjects"
+msgstr "Tổng số môn học"
+
+msgid "Attendance Rate"
+msgstr "Tỷ lệ điểm danh"
+
+msgid "Class Statistics"
+msgstr "Thống kê lớp học"
+
+msgid "Fill Rate"
+msgstr "Tỷ lệ đầy"
+
+msgid "Reports Dashboard"
+msgstr "Bảng điều khiển báo cáo"
+
+msgid "Quiz"
+msgstr "Kiểm tra 15 phút"
+
+msgid "Midterm"
+msgstr "Giữa kỳ"
+
+msgid "Final"
+msgstr "Cuối kỳ"
+
+msgid "Assignment"
+msgstr "Bài tập"
+
+msgid "Score"
+msgstr "Điểm số"
+
+msgid "Max Score"
+msgstr "Điểm tối đa"
+
+msgid "Grade"
+msgstr "Xếp loại"
+
+msgid "Student"
+msgstr "Học sinh"
+
+msgid "Subject"
+msgstr "Môn học"

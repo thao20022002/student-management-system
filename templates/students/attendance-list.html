@@ -1,0 +1,115 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+   
+         <div class="page-wrapper">
+            <div class="content container-fluid">
+               <div class="page-header">
+                  <div class="row align-items-center">
+                     <div class="col">
+                        <h3 class="page-title">{% trans "Attendance List" %}</h3>
+                        <ul class="breadcrumb">
+                           <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">{% trans "Dashboard" %}</a></li>
+                           <li class="breadcrumb-item active">{% trans "Attendance" %}</li>
+                        </ul>
+                     </div>
+                     <div class="col-auto text-right float-right ml-auto">
+                        <a href="{% url 'add_attendance' %}" class="btn btn-primary"><i class="fas fa-plus"></i> {% trans "Add Attendance" %}</a>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-sm-12">
+                     <div class="card">
+                        <div class="card-body">
+                           <form method="GET" class="mb-3">
+                              <div class="row">
+                                 <div class="col-md-4">
+                                    <label>Lớp học</label>
+                                    <select name="class" class="form-control" onchange="this.form.submit()">
+                                       <option value="">Tất cả các lớp</option>
+                                       {% for c in classes %}
+                                       <option value="{{ c.pk }}" {% if selected_class and selected_class.pk == c.pk %}selected{% endif %}>{{ c.class_name }}</option>
+                                       {% endfor %}
+                                    </select>
+                                 </div>
+                                 <div class="col-md-3">
+                                    <label>Ngày</label>
+                                    <input type="date" name="date" class="form-control" value="{{ request.GET.date }}">
+                                 </div>
+                                 <div class="col-md-3">
+                                    <label>Trạng thái</label>
+                                    <select name="status" class="form-control">
+                                       <option value="">Tất cả</option>
+                                       <option value="Present" {% if request.GET.status == 'Present' %}selected{% endif %}>Có mặt</option>
+                                       <option value="Absent" {% if request.GET.status == 'Absent' %}selected{% endif %}>Vắng mặt</option>
+                                       <option value="Late" {% if request.GET.status == 'Late' %}selected{% endif %}>Đi muộn</option>
+                                       <option value="Excused" {% if request.GET.status == 'Excused' %}selected{% endif %}>Có phép</option>
+                                    </select>
+                                 </div>
+                                 <div class="col-md-2">
+                                    <label>&nbsp;</label>
+                                    <button type="submit" class="btn btn-primary btn-block">Lọc</button>
+                                 </div>
+                              </div>
+                           </form>
+                           <div class="table-responsive">
+                              <table class="table table-hover table-center mb-0">
+                                 <thead>
+                                    <tr>
+                                       <th>STT</th>
+                                       <th>{% trans "Student" %}</th>
+                                       <th>{% trans "Date" %}</th>
+                                       <th>{% trans "Status" %}</th>
+                                       <th>{% trans "Remarks" %}</th>
+                                       <th class="text-right">{% trans "Action" %}</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {% for attendance in attendances %}
+                                    <tr>
+                                       <td>{{ forloop.counter }}</td>
+                                       <td>{{ attendance.student.first_name }} {{ attendance.student.last_name }}</td>
+                                       <td>{{ attendance.date|date:"d/m/Y" }}</td>
+                                       <td>
+                                          <span class="badge badge-{% if attendance.status == 'Present' %}success{% elif attendance.status == 'Absent' %}danger{% elif attendance.status == 'Late' %}warning{% else %}info{% endif %}">
+                                             {{ attendance.get_status_display }}
+                                          </span>
+                                       </td>
+                                       <td>{{ attendance.remarks|truncatewords:5 }}</td>
+                                       <td class="text-right">
+                                          <div class="actions">
+                                             <a href="{% url 'edit_attendance' attendance.pk %}" class="btn btn-sm bg-success-light mr-2">
+                                                 <i class="fas fa-pen"></i>
+                                             </a>
+                                             <form action="{% url 'delete_attendance' attendance.pk %}" method="POST" style="display:inline;">
+                                                 {% csrf_token %}
+                                                 <button type="submit" class="btn btn-sm bg-danger-light" onclick="return confirm('{% trans "Are you sure you want to delete this attendance?" %}');">
+                                                     <i class="fas fa-trash"></i>
+                                                 </button>
+                                             </form>
+                                         </div>
+                                       </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                       <td colspan="6" class="text-center">{% trans "No attendance records found" %}</td>
+                                    </tr>
+                                    {% endfor %}
+                                 </tbody>
+                              </table>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+{% endblock %}
+
+
+
+
+

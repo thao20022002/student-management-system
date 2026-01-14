@@ -1,0 +1,451 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-12-09 18:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Authentication pages
+msgid "Login"
+msgstr "Login"
+
+msgid "Access to our dashboard"
+msgstr "Access to our dashboard"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Password"
+msgstr "Password"
+
+msgid "Forgot Password?"
+msgstr "Forgot Password?"
+
+msgid "or"
+msgstr "or"
+
+msgid "Login with"
+msgstr "Login with"
+
+msgid "Don't have an account?"
+msgstr "Don't have an account?"
+
+msgid "Register"
+msgstr "Register"
+
+msgid "First Name"
+msgstr "First Name"
+
+msgid "Last Name"
+msgstr "Last Name"
+
+msgid "Confirm Password"
+msgstr "Confirm Password"
+
+msgid "Student"
+msgstr "Student"
+
+msgid "Teacher"
+msgstr "Teacher"
+
+msgid "Admin"
+msgstr "Admin"
+
+msgid "Register with"
+msgstr "Register with"
+
+msgid "Already have an account?"
+msgstr "Already have an account?"
+
+msgid "Forgot Password"
+msgstr "Forgot Password"
+
+msgid "Enter your email to get a password reset link"
+msgstr "Enter your email to get a password reset link"
+
+msgid "Reset Password"
+msgstr "Reset Password"
+
+msgid "Remember your password?"
+msgstr "Remember your password?"
+
+msgid "Enter a new password to reset your account"
+msgstr "Enter a new password to reset your account"
+
+msgid "New Password"
+msgstr "New Password"
+
+msgid "Back to"
+msgstr "Back to"
+
+# Dashboard and navigation
+msgid "Search here"
+msgstr "Search here"
+
+msgid "Notifications"
+msgstr "Notifications"
+
+msgid "Clear All"
+msgstr "Clear All"
+
+msgid "View all Notifications"
+msgstr "View all Notifications"
+
+msgid "Administrator"
+msgstr "Administrator"
+
+msgid "My Profile"
+msgstr "My Profile"
+
+msgid "Inbox"
+msgstr "Inbox"
+
+msgid "Logout"
+msgstr "Logout"
+
+msgid "Main Menu"
+msgstr "Main Menu"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Admin Dashboard"
+msgstr "Admin Dashboard"
+
+msgid "Teacher Dashboard"
+msgstr "Teacher Dashboard"
+
+msgid "Student Dashboard"
+msgstr "Student Dashboard"
+
+msgid "Students"
+msgstr "Students"
+
+msgid "Student List"
+msgstr "Student List"
+
+msgid "Student View"
+msgstr "Student View"
+
+msgid "Student Add"
+msgstr "Student Add"
+
+msgid "Student Edit"
+msgstr "Student Edit"
+
+# Student pages
+msgid "Add Students"
+msgstr "Add Students"
+
+msgid "Edit Students"
+msgstr "Edit Students"
+
+msgid "Student Details"
+msgstr "Student Details"
+
+msgid "ID"
+msgstr "ID"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Class"
+msgstr "Class"
+
+msgid "DOB"
+msgstr "DOB"
+
+msgid "Parent Name"
+msgstr "Parent Name"
+
+msgid "Mobile Number"
+msgstr "Mobile Number"
+
+msgid "Address"
+msgstr "Address"
+
+msgid "Action"
+msgstr "Action"
+
+msgid "Download"
+msgstr "Download"
+
+msgid "Are you sure you want to delete this student?"
+msgstr "Are you sure you want to delete this student?"
+
+msgid "Student Information"
+msgstr "Student Information"
+
+msgid "Student Id"
+msgstr "Student Id"
+
+msgid "Gender"
+msgstr "Gender"
+
+msgid "Select Gender"
+msgstr "Select Gender"
+
+msgid "Female"
+msgstr "Female"
+
+msgid "Male"
+msgstr "Male"
+
+msgid "Others"
+msgstr "Others"
+
+msgid "Date of Birth"
+msgstr "Date of Birth"
+
+msgid "Religion"
+msgstr "Religion"
+
+msgid "Joining Date"
+msgstr "Joining Date"
+
+msgid "Admission Number"
+msgstr "Admission Number"
+
+msgid "Section"
+msgstr "Section"
+
+msgid "Student Image"
+msgstr "Student Image"
+
+msgid "Parent Information"
+msgstr "Parent Information"
+
+msgid "Father's Name"
+msgstr "Father's Name"
+
+msgid "Father's Occupation"
+msgstr "Father's Occupation"
+
+msgid "Father's Mobile"
+msgstr "Father's Mobile"
+
+msgid "Father's Email"
+msgstr "Father's Email"
+
+msgid "Mother's Name"
+msgstr "Mother's Name"
+
+msgid "Mother's Occupation"
+msgstr "Mother's Occupation"
+
+msgid "Mother's Mobile"
+msgstr "Mother's Mobile"
+
+msgid "Mother's Email"
+msgstr "Mother's Email"
+
+msgid "Present Address"
+msgstr "Present Address"
+
+msgid "Permanent Address"
+msgstr "Permanent Address"
+
+msgid "Submit"
+msgstr "Submit"
+
+msgid "Welcome Admin!"
+msgstr "Welcome Admin!"
+
+msgid "Welcome Bruklin!"
+msgstr "Welcome Bruklin!"
+
+# New features
+msgid "Classes"
+msgstr "Classes"
+
+msgid "Class List"
+msgstr "Class List"
+
+msgid "Add Class"
+msgstr "Add Class"
+
+msgid "Subjects"
+msgstr "Subjects"
+
+msgid "Subject List"
+msgstr "Subject List"
+
+msgid "Add Subject"
+msgstr "Add Subject"
+
+msgid "Grades"
+msgstr "Grades"
+
+msgid "Grade List"
+msgstr "Grade List"
+
+msgid "Add Grade"
+msgstr "Add Grade"
+
+msgid "Attendance"
+msgstr "Attendance"
+
+msgid "Attendance List"
+msgstr "Attendance List"
+
+msgid "Add Attendance"
+msgstr "Add Attendance"
+
+msgid "Reports"
+msgstr "Reports"
+
+msgid "Class Name"
+msgstr "Class Name"
+
+msgid "Class Code"
+msgstr "Class Code"
+
+msgid "Grade Level"
+msgstr "Grade Level"
+
+msgid "Capacity"
+msgstr "Capacity"
+
+msgid "Class Teacher"
+msgstr "Class Teacher"
+
+msgid "Select Class"
+msgstr "Select Class"
+
+msgid "Select Teacher"
+msgstr "Select Teacher"
+
+msgid "Select Subject"
+msgstr "Select Subject"
+
+msgid "Select Student"
+msgstr "Select Student"
+
+msgid "Edit Class"
+msgstr "Edit Class"
+
+msgid "Edit Subject"
+msgstr "Edit Subject"
+
+msgid "Edit Grade"
+msgstr "Edit Grade"
+
+msgid "Edit Attendance"
+msgstr "Edit Attendance"
+
+msgid "Subject Name"
+msgstr "Subject Name"
+
+msgid "Subject Code"
+msgstr "Subject Code"
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Exam Type"
+msgstr "Exam Type"
+
+msgid "Exam Date"
+msgstr "Exam Date"
+
+msgid "Remarks"
+msgstr "Remarks"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Present"
+msgstr "Present"
+
+msgid "Absent"
+msgstr "Absent"
+
+msgid "Late"
+msgstr "Late"
+
+msgid "Excused"
+msgstr "Excused"
+
+msgid "All Students"
+msgstr "All Students"
+
+msgid "All Subjects"
+msgstr "All Subjects"
+
+msgid "All Exam Types"
+msgstr "All Exam Types"
+
+msgid "All Classes"
+msgstr "All Classes"
+
+msgid "All Status"
+msgstr "All Status"
+
+msgid "Filter"
+msgstr "Filter"
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "No classes found"
+msgstr "No classes found"
+
+msgid "No subjects found"
+msgstr "No subjects found"
+
+msgid "No grades found"
+msgstr "No grades found"
+
+msgid "No attendance records found"
+msgstr "No attendance records found"
+
+msgid "No students found"
+msgstr "No students found"
+
+msgid "Are you sure you want to delete this class?"
+msgstr "Are you sure you want to delete this class?"
+
+msgid "Are you sure you want to delete this subject?"
+msgstr "Are you sure you want to delete this subject?"
+
+msgid "Are you sure you want to delete this grade?"
+msgstr "Are you sure you want to delete this grade?"
+
+msgid "Are you sure you want to delete this attendance?"
+msgstr "Are you sure you want to delete this attendance?"
+
+msgid "Total Students"
+msgstr "Total Students"
+
+msgid "Total Classes"
+msgstr "Total Classes"
+
+msgid "Total Subjects"
+msgstr "Total Subjects"
+
+msgid "Attendance Rate"
+msgstr "Attendance Rate"
+
+msgid "Class Statistics"
+msgstr "Class Statistics"
+
+msgid "Fill Rate"
+msgstr "Fill Rate"

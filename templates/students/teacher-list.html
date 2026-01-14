@@ -1,0 +1,103 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+   
+         <div class="page-wrapper">
+            <div class="content container-fluid">
+               <div class="page-header">
+                  <div class="row align-items-center">
+                     <div class="col">
+                        <h3 class="page-title">{% trans "Teacher List" %}</h3>
+                        <ul class="breadcrumb">
+                           <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">{% trans "Dashboard" %}</a></li>
+                           <li class="breadcrumb-item active">{% trans "Teachers" %}</li>
+                        </ul>
+                     </div>
+                     <div class="col-auto text-right float-right ml-auto">
+                        <a href="{% url 'add_teacher' %}" class="btn btn-primary"><i class="fas fa-plus"></i> {% trans "Add Teacher" %}</a>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-sm-12">
+                     <div class="card card-table">
+                        <div class="card-body">
+                           <div class="table-responsive">
+                              <table class="table table-hover table-center mb-0 datatable">
+                                 <thead>
+                                    <tr>
+                                       <th>STT</th>
+                                       <th>{% trans "Teacher ID" %}</th>
+                                       <th>{% trans "Họ và tên" %}</th>
+                                       <th>{% trans "Email" %}</th>
+                                       <th>{% trans "Phone" %}</th>
+                                       <th>{% trans "Specialization" %}</th>
+                                       <th>{% trans "Status" %}</th>
+                                       <th class="text-right">{% trans "Action" %}</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {% for teacher in teachers %}
+                                    <tr>
+                                       <td>{{ forloop.counter }}</td>
+                                       <td>{{ teacher.teacher_id }}</td>
+                                       <td>
+                                          <h2 class="table-avatar">
+                                             {% if teacher.teacher_image %}
+                                             <a href="#" class="avatar avatar-sm mr-2">
+                                                <img class="avatar-img rounded-circle" src="{{ teacher.teacher_image.url }}" alt="{{ teacher.get_full_name }}">
+                                             </a>
+                                             {% endif %}
+                                             <a href="#">{{ teacher.get_full_name }}</a>
+                                          </h2>
+                                       </td>
+                                       <td>{{ teacher.get_email }}</td>
+                                       <td>{{ teacher.phone_number|default:"-" }}</td>
+                                       <td>{{ teacher.specialization|default:"-" }}</td>
+                                       <td>
+                                          {% if teacher.is_active %}
+                                             <span class="badge badge-success">{% trans "Active" %}</span>
+                                          {% else %}
+                                             <span class="badge badge-warning">{% trans "Inactive" %}</span>
+                                          {% endif %}
+                                       </td>
+                                       <td class="text-right">
+                                          <div class="actions">
+                                             <a href="{% url 'edit_teacher' teacher.pk %}" class="btn btn-sm bg-success-light mr-2">
+                                                 <i class="fas fa-pen"></i>
+                                             </a>
+                                             <form action="{% url 'delete_teacher' teacher.pk %}" method="POST" style="display:inline;">
+                                                 {% csrf_token %}
+                                                 <button type="submit" class="btn btn-sm bg-danger-light" onclick="return confirm('{% trans "Are you sure you want to delete this teacher?" %}');">
+                                                     <i class="fas fa-trash"></i>
+                                                 </button>
+                                             </form>
+                                         </div>
+                                       </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                       <td colspan="8" class="text-center">{% trans "No teachers found" %}</td>
+                                    </tr>
+                                    {% endfor %}
+                                 </tbody>
+                              </table>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <script src="{%static 'assets/js/jquery-3.6.0.min.js' %}"></script>
+      <script src="{%static 'assets/js/popper.min.js' %}"></script>
+      <script src="{%static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+      <script src="{%static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+      <script src="{%static 'assets/plugins/datatables/datatables.min.js' %}"></script>
+      <script src="{%static 'assets/js/script.js' %}"></script>
+{% endblock %}
+
+
+

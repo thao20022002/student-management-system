@@ -1,0 +1,190 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+<div class="page-wrapper">
+   <div class="content container-fluid">
+      <div class="page-header">
+         <div class="row">
+            <div class="col-sm-12">
+               <h3 class="page-title">Chi tiết học sinh</h3>
+               <ul class="breadcrumb">
+                  <li class="breadcrumb-item"><a href="{% url 'student_list' %}">Danh sách học sinh</a></li>
+                  <li class="breadcrumb-item active">Chi tiết học sinh</li>
+               </ul>
+            </div>
+         </div>
+      </div>
+      
+      <div class="card">
+         <div class="card-body">
+            <div class="row">
+               <div class="col-md-12">
+                  <div class="about-info">
+                     <h4>Thông tin học sinh</h4>
+                     <div class="media mt-3">
+                        {% if student.student_image %}
+                        <img src="{{ student.student_image.url }}" class="mr-3 rounded-circle" alt="Ảnh học sinh" style="width: 150px; height: 150px; object-fit: cover;">
+                        {% endif %}
+                        <div class="media-body">
+                           <ul class="list-unstyled">
+                              <li class="mb-2">
+                                 <span class="title-span font-weight-bold">Họ và tên: </span>
+                                 <span class="info-span">{{ student.first_name }} {{ student.last_name }}</span>
+                              </li>
+                              <li class="mb-2">
+                                 <span class="title-span font-weight-bold">Mã học sinh: </span>
+                                 <span class="info-span">{{ student.student_id }}</span>
+                              </li>
+                              <li class="mb-2">
+                                 <span class="title-span font-weight-bold">Số nhập học: </span>
+                                 <span class="info-span">{{ student.admission_number }}</span>
+                              </li>
+                              <li class="mb-2">
+                                 <span class="title-span font-weight-bold">Lớp học: </span>
+                                 <span class="info-span">{% if student.student_class %}{{ student.student_class.class_name }}{% else %}-{% endif %}</span>
+                              </li>
+                              <li class="mb-2">
+                                 <span class="title-span font-weight-bold">Khối: </span>
+                                 <span class="info-span">{% if student.section %}{{ student.section }}{% else %}-{% endif %}</span>
+                              </li>
+                              <li class="mb-2">
+                                 <span class="title-span font-weight-bold">Giới tính: </span>
+                                 <span class="info-span">
+                                    {% if student.gender == 'Male' %}Nam
+                                    {% elif student.gender == 'Female' %}Nữ
+                                    {% else %}Khác
+                                    {% endif %}
+                                 </span>
+                              </li>
+                              <li class="mb-2">
+                                 <span class="title-span font-weight-bold">Ngày sinh: </span>
+                                 <span class="info-span">{{ student.date_of_birth|date:"d/m/Y" }}</span>
+                              </li>
+                              <li class="mb-2">
+                                 <span class="title-span font-weight-bold">Ngày nhập học: </span>
+                                 <span class="info-span">{{ student.joining_date|date:"d/m/Y" }}</span>
+                              </li>
+                              <li class="mb-2">
+                                 <span class="title-span font-weight-bold">Số điện thoại: </span>
+                                 <span class="info-span">{{ student.mobile_number }}</span>
+                              </li>
+                              {% if student.religion %}
+                              <li class="mb-2">
+                                 <span class="title-span font-weight-bold">Tôn giáo: </span>
+                                 <span class="info-span">{{ student.religion }}</span>
+                              </li>
+                              {% endif %}
+                              <li class="mb-2">
+                                 <span class="title-span font-weight-bold">Trạng thái: </span>
+                                 <span class="info-span">
+                                    {% if student.is_active %}
+                                       <span class="badge badge-success">Đang học</span>
+                                    {% else %}
+                                       <span class="badge badge-warning">Đã nghỉ</span>
+                                    {% endif %}
+                                 </span>
+                              </li>
+                           </ul>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+            
+            <div class="row mt-4">
+               <div class="col-md-12">
+                  <h4>Thông tin phụ huynh</h4>
+                  <div class="row mt-3">
+                     <div class="col-md-6">
+                        <h5>Cha</h5>
+                        <ul class="list-unstyled">
+                           <li class="mb-2">
+                              <span class="title-span font-weight-bold">Họ tên: </span>
+                              <span class="info-span">{{ student.parent.father_name }}</span>
+                           </li>
+                           {% if student.parent.father_occupation %}
+                           <li class="mb-2">
+                              <span class="title-span font-weight-bold">Nghề nghiệp: </span>
+                              <span class="info-span">{{ student.parent.father_occupation }}</span>
+                           </li>
+                           {% endif %}
+                           <li class="mb-2">
+                              <span class="title-span font-weight-bold">Số điện thoại: </span>
+                              <span class="info-span">{{ student.parent.father_mobile }}</span>
+                           </li>
+                           <li class="mb-2">
+                              <span class="title-span font-weight-bold">Email: </span>
+                              <span class="info-span"><a href="mailto:{{ student.parent.father_email }}">{{ student.parent.father_email }}</a></span>
+                           </li>
+                        </ul>
+                     </div>
+                     <div class="col-md-6">
+                        <h5>Mẹ</h5>
+                        <ul class="list-unstyled">
+                           <li class="mb-2">
+                              <span class="title-span font-weight-bold">Họ tên: </span>
+                              <span class="info-span">{{ student.parent.mother_name }}</span>
+                           </li>
+                           {% if student.parent.mother_occupation %}
+                           <li class="mb-2">
+                              <span class="title-span font-weight-bold">Nghề nghiệp: </span>
+                              <span class="info-span">{{ student.parent.mother_occupation }}</span>
+                           </li>
+                           {% endif %}
+                           <li class="mb-2">
+                              <span class="title-span font-weight-bold">Số điện thoại: </span>
+                              <span class="info-span">{{ student.parent.mother_mobile }}</span>
+                           </li>
+                           <li class="mb-2">
+                              <span class="title-span font-weight-bold">Email: </span>
+                              <span class="info-span"><a href="mailto:{{ student.parent.mother_email }}">{{ student.parent.mother_email }}</a></span>
+                           </li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+            </div>
+            
+            <div class="row mt-4">
+               <div class="col-md-6">
+                  <h5>Địa chỉ thường trú</h5>
+                  <p class="mt-2">{{ student.parent.permanent_address }}</p>
+               </div>
+               <div class="col-md-6">
+                  <h5>Địa chỉ hiện tại</h5>
+                  <p class="mt-2">{{ student.parent.present_address }}</p>
+               </div>
+            </div>
+            
+            {% if user.is_admin %}
+            <div class="row mt-4">
+               <div class="col-md-12">
+                  <a href="{% url 'edit_student' student.pk %}" class="btn btn-primary mr-2">
+                     <i class="fas fa-edit"></i> Chỉnh sửa thông tin
+                  </a>
+                  <a href="{% url 'student_list' %}" class="btn btn-secondary">
+                     <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                  </a>
+               </div>
+            </div>
+            {% else %}
+            <div class="row mt-4">
+               <div class="col-md-12">
+                  <a href="{% url 'student_list' %}" class="btn btn-secondary">
+                     <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                  </a>
+               </div>
+            </div>
+            {% endif %}
+         </div>
+      </div>
+   </div>
+</div>
+
+<script src="{% static 'assets/js/jquery-3.6.0.min.js' %}"></script>
+<script src="{% static 'assets/js/popper.min.js' %}"></script>
+<script src="{% static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+<script src="{% static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+<script src="{% static 'assets/js/script.js' %}"></script>
+{% endblock %}

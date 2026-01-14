@@ -1,0 +1,148 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+   
+         <div class="page-wrapper">
+            <div class="content container-fluid">
+               <div class="page-header">
+                  <div class="row align-items-center">
+                     <div class="col">
+                        <h3 class="page-title">Duyệt điểm</h3>
+                        <ul class="breadcrumb">
+                           <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">{% trans "Dashboard" %}</a></li>
+                           <li class="breadcrumb-item"><a href="{% url 'grade_list' %}">Danh sách điểm</a></li>
+                           <li class="breadcrumb-item active">Duyệt điểm</li>
+                        </ul>
+                     </div>
+                     <div class="col-auto text-right float-right ml-auto">
+                        {% if pending_grades %}
+                        <form action="{% url 'approve_all_grades' %}{% if selected_class or selected_subject or selected_exam_type %}?{% if selected_class %}class={{ selected_class.pk }}&{% endif %}{% if selected_subject %}subject={{ selected_subject.pk }}&{% endif %}{% if selected_exam_type %}exam_type={{ selected_exam_type }}{% endif %}{% endif %}" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn duyệt tất cả {{ pending_grades|length }} điểm đang chờ duyệt{% if selected_class %} của lớp {{ selected_class.class_name }}{% endif %}{% if selected_subject %} - môn {{ selected_subject.subject_name }}{% endif %}{% if selected_exam_type %} - loại {{ selected_exam_type }}{% endif %}?');">
+                           {% csrf_token %}
+                           <button type="submit" class="btn btn-success mr-2"><i class="fas fa-check-double"></i> Duyệt tất cả ({{ pending_grades|length }})</button>
+                        </form>
+                        {% endif %}
+                        <a href="{% url 'grade_list' %}" class="btn btn-primary"><i class="fas fa-arrow-left"></i> Quay lại</a>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-sm-12">
+                     <div class="card">
+                        <div class="card-body">
+                           {% if messages %}
+                           <div class="alert alert-info">
+                              {% for message in messages %}
+                                 <p>{{ message }}</p>
+                              {% endfor %}
+                           </div>
+                           {% endif %}
+                           
+                           <form method="GET" class="mb-3">
+                              <div class="row">
+                                 <div class="col-md-3">
+                                    <label>Lọc theo lớp</label>
+                                    <select name="class" class="form-control" onchange="this.form.submit()">
+                                       <option value="">Tất cả các lớp</option>
+                                       {% for c in all_classes %}
+                                       <option value="{{ c.pk }}" {% if selected_class and selected_class.pk == c.pk %}selected{% endif %}>{{ c.class_name }}</option>
+                                       {% endfor %}
+                                    </select>
+                                 </div>
+                                 <div class="col-md-3">
+                                    <label>Lọc theo môn học</label>
+                                    <select name="subject" class="form-control" onchange="this.form.submit()">
+                                       <option value="">Tất cả môn học</option>
+                                       {% for s in all_subjects %}
+                                       <option value="{{ s.pk }}" {% if selected_subject and selected_subject.pk == s.pk %}selected{% endif %}>{{ s.subject_name }}</option>
+                                       {% endfor %}
+                                    </select>
+                                 </div>
+                                 <div class="col-md-3">
+                                    <label>Lọc theo loại kiểm tra</label>
+                                    <select name="exam_type" class="form-control" onchange="this.form.submit()">
+                                       <option value="">Tất cả loại</option>
+                                       {% for exam_type_value in exam_types_in_db %}
+                                       <option value="{{ exam_type_value }}" {% if selected_exam_type == exam_type_value %}selected{% endif %}>
+                                          {% if exam_type_value == 'Quiz' %}Kiểm tra 15 phút
+                                          {% elif exam_type_value == 'Midterm' %}Giữa kỳ
+                                          {% elif exam_type_value == 'Final' %}Cuối kỳ
+                                          {% elif exam_type_value == 'Assignment' %}Bài tập
+                                          {% else %}{{ exam_type_value }}{% endif %}
+                                       </option>
+                                       {% endfor %}
+                                    </select>
+                                 </div>
+                                 <div class="col-md-3">
+                                    <label>&nbsp;</label>
+                                    <a href="{% url 'approve_grades' %}" class="btn btn-secondary btn-block">Xóa bộ lọc</a>
+                                 </div>
+                              </div>
+                           </form>
+                           
+                           {% if pending_grades %}
+                           <div class="table-responsive">
+                              <table class="table table-hover table-center mb-0">
+                                 <thead>
+                                    <tr>
+                                       <th>STT</th>
+                                       <th>Học sinh</th>
+                                       <th>Lớp</th>
+                                       <th>Môn học</th>
+                                       <th>Loại bài thi</th>
+                                       <th>Điểm số</th>
+                                       <th>Xếp loại</th>
+                                       <th>Ngày thi</th>
+                                       <th>Nhận xét</th>
+                                       <th>Ngày tạo</th>
+                                       <th class="text-right">Thao tác</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody>
+                                    {% for grade in pending_grades %}
+                                    <tr>
+                                       <td>{{ forloop.counter }}</td>
+                                       <td>{{ grade.student.first_name }} {{ grade.student.last_name }}</td>
+                                       <td>{% if grade.student.student_class %}{{ grade.student.student_class.class_name }}{% else %}-{% endif %}</td>
+                                       <td>{{ grade.subject.subject_name }}</td>
+                                       <td>{{ grade.get_exam_type_display }}</td>
+                                       <td>{{ grade.score }}/{{ grade.max_score }}</td>
+                                       <td><span class="badge badge-{% if grade.grade_letter == 'A+' or grade.grade_letter == 'A' %}success{% elif grade.grade_letter == 'B+' or grade.grade_letter == 'B' %}info{% elif grade.grade_letter == 'C+' or grade.grade_letter == 'C' %}warning{% else %}danger{% endif %}">{{ grade.grade_letter }}</span></td>
+                                       <td>{{ grade.exam_date|date:"d/m/Y" }}</td>
+                                       <td>{{ grade.remarks|truncatewords:5|default:"-" }}</td>
+                                       <td>{{ grade.created_at|date:"d/m/Y H:i" }}</td>
+                                       <td class="text-right">
+                                          <div class="actions">
+                                             <form action="{% url 'approve_grade' grade.pk %}" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn duyệt điểm này?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm bg-success-light mr-2" title="Duyệt">
+                                                   <i class="fas fa-check"></i> Duyệt
+                                                </button>
+                                             </form>
+                                             <form action="{% url 'reject_grade' grade.pk %}" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn từ chối điểm này? Điểm sẽ bị xóa.');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm bg-danger-light" title="Từ chối">
+                                                   <i class="fas fa-times"></i> Từ chối
+                                                </button>
+                                             </form>
+                                          </div>
+                                       </td>
+                                    </tr>
+                                    {% endfor %}
+                                 </tbody>
+                              </table>
+                           </div>
+                           {% else %}
+                           <div class="alert alert-info text-center">
+                              <p>Không có điểm nào đang chờ duyệt.</p>
+                           </div>
+                           {% endif %}
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+{% endblock %}
+

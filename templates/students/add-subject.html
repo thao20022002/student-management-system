@@ -1,0 +1,73 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+   
+         <div class="page-wrapper">
+            <div class="content container-fluid">
+               <div class="page-header">
+                  <div class="row align-items-center">
+                     <div class="col">
+                        <h3 class="page-title">{% trans "Add Subject" %}</h3>
+                        <ul class="breadcrumb">
+                           <li class="breadcrumb-item"><a href="{% url 'subject_list' %}">{% trans "Subjects" %}</a></li>
+                           <li class="breadcrumb-item active">{% trans "Add Subject" %}</li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-sm-12">
+                     <div class="card">
+                        <div class="card-body">
+                           <form method="POST">
+                              {% csrf_token %}
+                              <div class="row">
+                                 <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                       <label>{% trans "Subject Name" %}</label>
+                                       <input type="text" class="form-control" name="subject_name" required>
+                                    </div>
+                                 </div>
+                                 <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                       <label>{% trans "Subject Code" %}</label>
+                                       <input type="text" class="form-control" name="subject_code" required>
+                                    </div>
+                                 </div>
+                                 <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                       <label>{% trans "Teacher" %}</label>
+                                       <select class="form-control" name="teacher">
+                                          <option value="">{% trans "Select Teacher" %}</option>
+                                          {% for teacher in teachers %}
+                                          <option value="{{ teacher.id }}">{{ teacher.get_full_name }} ({{ teacher.teacher_id }})</option>
+                                          {% endfor %}
+                                       </select>
+                                    </div>
+                                 </div>
+                                 <div class="col-12">
+                                    <div class="form-group">
+                                       <label>{% trans "Description" %}</label>
+                                       <textarea class="form-control" name="description" rows="3"></textarea>
+                                    </div>
+                                 </div>
+                                 <div class="col-12">
+                                    <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
+                                    <a href="{% url 'subject_list' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+                                 </div>
+                              </div>
+                           </form>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+{% endblock %}
+
+
+
+
+

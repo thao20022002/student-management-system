@@ -1,0 +1,136 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+   
+         <div class="page-wrapper">
+            <div class="content container-fluid">
+               <div class="page-header">
+                  <div class="row align-items-center">
+                     <div class="col">
+                        <h3 class="page-title">{% trans "Add Attendance" %}</h3>
+                        <ul class="breadcrumb">
+                           <li class="breadcrumb-item"><a href="{% url 'attendance_list' %}">{% trans "Attendance" %}</a></li>
+                           <li class="breadcrumb-item active">{% trans "Add Attendance" %}</li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-sm-12">
+                     <div class="card">
+                        <div class="card-body">
+                           <form method="GET" class="mb-3">
+                              <div class="row">
+                                 <div class="col-md-4">
+                                    <label>Chọn lớp</label>
+                                    <select name="class" class="form-control" onchange="this.form.submit()">
+                                       <option value="">Tất cả các lớp</option>
+                                       {% for c in classes %}
+                                       <option value="{{ c.pk }}" {% if selected_class and selected_class.pk == c.pk %}selected{% endif %}>{{ c.class_name }}</option>
+                                       {% endfor %}
+                                    </select>
+                                 </div>
+                                 <div class="col-md-4">
+                                    <label>{% trans "Date" %}</label>
+                                    <input type="date" name="date" id="attendance-date" class="form-control" value="{{ selected_date }}" onchange="handleDateChange(this);">
+                                    <small class="text-muted">Không thể điểm danh vào chủ nhật</small>
+                                 </div>
+                              </div>
+                           </form>
+                           <form method="POST">
+                              {% csrf_token %}
+                              <input type="hidden" name="date" value="{{ selected_date }}">
+                              <div class="table-responsive">
+                                 <table class="table table-hover table-center mb-0">
+                                    <thead>
+                                       <tr>
+                                          <th>{% trans "Student" %}</th>
+                                          <th>{% trans "Status" %}</th>
+                                          <th>{% trans "Remarks" %}</th>
+                                       </tr>
+                                    </thead>
+                                    <tbody>
+                                       {% for student in students %}
+                                       <tr>
+                                          <td>
+                                             <input type="hidden" name="students" value="{{ student.id }}">
+                                             {{ student.first_name }} {{ student.last_name }} ({{ student.student_id }})
+                                          </td>
+                                          <td>
+                                             <select name="status" class="form-control">
+                                                {% with student_id_str=student.id|stringformat:"s" %}
+                                                   {% if existing_attendance %}
+                                                      {% for key, value in existing_attendance.items %}
+                                                         {% if key == student_id_str %}
+                                                            <option value="Present" {% if value.status == 'Present' %}selected{% endif %}>Có mặt</option>
+                                                            <option value="Absent" {% if value.status == 'Absent' %}selected{% endif %}>Vắng mặt</option>
+                                                            <option value="Late" {% if value.status == 'Late' %}selected{% endif %}>Đi muộn</option>
+                                                            <option value="Excused" {% if value.status == 'Excused' %}selected{% endif %}>Có phép</option>
+                                                         {% endif %}
+                                                      {% endfor %}
+                                                      {% if student_id_str not in existing_attendance %}
+                                                         <option value="Present" selected>Có mặt</option>
+                                                         <option value="Absent">Vắng mặt</option>
+                                                         <option value="Late">Đi muộn</option>
+                                                         <option value="Excused">Có phép</option>
+                                                      {% endif %}
+                                                   {% else %}
+                                                      <option value="Present" selected>Có mặt</option>
+                                                      <option value="Absent">Vắng mặt</option>
+                                                      <option value="Late">Đi muộn</option>
+                                                      <option value="Excused">Có phép</option>
+                                                   {% endif %}
+                                                {% endwith %}
+                                             </select>
+                                          </td>
+                                          <td>
+                                             <input type="text" name="remarks" class="form-control" placeholder="{% trans 'Remarks' %}" value="{% if existing_attendance %}{% for key, value in existing_attendance.items %}{% if key == student.id|stringformat:'s' %}{{ value.remarks }}{% endif %}{% endfor %}{% endif %}">
+                                          </td>
+                                       </tr>
+                                       {% empty %}
+                                       <tr>
+                                          <td colspan="3" class="text-center">{% trans "No students found" %}</td>
+                                       </tr>
+                                       {% endfor %}
+                                    </tbody>
+                                 </table>
+                              </div>
+                              {% if students %}
+                              <div class="mt-3">
+                                 <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
+                                 <a href="{% url 'attendance_list' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+                              </div>
+                              {% endif %}
+                           </form>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+<script>
+function checkSunday(input) {
+    if (!input.value) {
+        return true;
+    }
+    const selectedDate = new Date(input.value);
+    const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    
+    if (dayOfWeek === 0) {
+        alert('Không thể điểm danh vào chủ nhật! Vui lòng chọn ngày khác.');
+        input.value = '';
+        return false;
+    }
+    return true;
+}
+
+function handleDateChange(input) {
+    if (checkSunday(input) && input.value) {
+        // Chỉ submit form nếu ngày hợp lệ (không phải chủ nhật)
+        input.form.submit();
+    }
+}
+</script>
+{% endblock %}
