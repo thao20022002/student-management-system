@@ -10,35 +10,10 @@ from django.utils.crypto import get_random_string
 
 def signup_view(request):
     if request.method == 'POST':
-        first_name = request.POST.get('first_name', '').strip()
-        last_name = request.POST.get('last_name', '').strip()
-        email = request.POST.get('email', '').strip()
-        password = request.POST.get('password', '')
-        confirm_password = request.POST.get('confirm_password', '')
-        role = request.POST.get('role')  # Get role from the form (student, teacher, or admin)
-        
-        # Validate required fields
-        if not all([first_name, last_name, email, password]):
-            messages.error(request, 'Please fill in all required fields.')
-            return render(request, 'authentication/register.html')
-        
-        # Check if passwords match
-        if password != confirm_password:
-            messages.error(request, 'Passwords do not match.')
-            return render(request, 'authentication/register.html')
-        
-        # Check if email already exists
-        if CustomUser.objects.filter(email=email).exists():
-            messages.error(request, 'An account with this email already exists. Please use a different email or try logging in.')
-            return render(request, 'authentication/register.html')
-        
-        # Check if username (email) already exists
-        if CustomUser.objects.filter(username=email).exists():
-            messages.error(request, 'An account with this email already exists. Please use a different email or try logging in.')
-            return render(request, 'authentication/register.html')
+        # ... (giữ nguyên phần lấy dữ liệu và validate) ...
         
         try:
-            # Create the user
+            # Tạo user
             user = CustomUser.objects.create_user(
                 username=email,
                 email=email,
@@ -47,25 +22,27 @@ def signup_view(request):
                 password=password,
             )
             
-            # Assign the appropriate role (default to student if no role selected)
-            if role == 'student' or not role:
-                user.is_student = True
-            elif role == 'teacher':
+            # Thiết lập quyền (giữ nguyên logic role của bạn)
+            if role == 'teacher':
                 user.is_teacher = True
             elif role == 'admin':
                 user.is_admin = True
+            else:
+                user.is_student = True
 
-            user.save()  # Save the user with the assigned role
-            login(request, user)
-            messages.success(request, 'Signup successful!')
-            return redirect('index')  # Redirect to the index or home page
+            # QUAN TRỌNG: Đặt tài khoản ở trạng thái chờ duyệt
+            user.is_active = False 
+            user.save()
+            
+            # XÓA dòng login(request, user) để người dùng không vào được hệ thống ngay
+            messages.success(request, 'Đăng ký thành công! Vui lòng đợi quản trị viên phê duyệt tài khoản.')
+            return redirect('login') # Chuyển hướng về trang đăng nhập
         
         except Exception as e:
-            # Catch any other unexpected errors
-            messages.error(request, f'An error occurred during registration. Please try again.')
+            messages.error(request, f'Có lỗi xảy ra trong quá trình đăng ký.')
             return render(request, 'authentication/register.html')
     
-    return render(request, 'authentication/register.html')  # Render signup template
+    return render(request, 'authentication/register.html')
 
 
 def login_view(request):
@@ -73,12 +50,13 @@ def login_view(request):
         username_or_email = request.POST.get('username_or_email', '').strip()
         password = request.POST['password']
         
+        # KHỞI TẠO biến user để tránh lỗi NameError
         user = None
         
-        # Thử authenticate bằng username trước
+        # 1. Thử xác thực bằng username trước
         user = authenticate(request, username=username_or_email, password=password)
         
-        # Nếu không tìm thấy, thử tìm bằng email
+        # 2. Nếu không tìm thấy bằng username, thử tìm bằng email
         if user is None:
             try:
                 user_obj = CustomUser.objects.get(email=username_or_email)
@@ -86,29 +64,32 @@ def login_view(request):
             except CustomUser.DoesNotExist:
                 pass
         
+        # 3. Kiểm tra xem user có tồn tại (xác thực thành công) hay không
         if user is not None:
+            # KIỂM TRA QUYỀN: Tài khoản phải được Admin duyệt (is_authorized=True)
+            if not user.is_authorized:
+                messages.error(request, 'Tài khoản của bạn chưa được phê duyệt. Vui lòng liên hệ Admin.')
+                return render(request, 'authentication/login.html')
+
+            # Nếu đã duyệt, tiến hành đăng nhập
             login(request, user)
             messages.success(request, 'Đăng nhập thành công!')
             
-            # Redirect user based on their role
-            if user.is_admin:
-                # If admin_dashboard URL doesn't exist, redirect to dashboard or index
-                return redirect('dashboard')
-            elif user.is_teacher:
-                # If teacher_dashboard URL doesn't exist, redirect to dashboard or index
-                return redirect('dashboard')
-            elif user.is_student:
+            # Điều hướng dựa trên vai trò (Role)
+            if user.is_admin or user.is_teacher or user.is_student:
                 return redirect('dashboard')
             else:
-                # If no role assigned, default to student role and redirect
+                # Mặc định gán quyền học sinh nếu chưa có vai trò
                 user.is_student = True
                 user.save()
                 messages.info(request, 'Tài khoản của bạn đã được đặt là tài khoản học sinh.')
                 return redirect('dashboard')
             
         else:
+            # Nếu authenticate trả về None
             messages.error(request, 'Tên đăng nhập hoặc mật khẩu không đúng!')
-    return render(request, 'authentication/login.html')  # Render login template
+            
+    return render(request, 'authentication/login.html')
 
 
 def forgot_password_view(request):
