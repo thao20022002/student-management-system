@@ -122,14 +122,12 @@ class Grade(models.Model):
         unique_together = ['student', 'subject', 'exam_type', 'exam_date']
     
     def save(self, *args, **kwargs):
-        # Tự động tính grade_letter dựa trên điểm số
-        # Đảm bảo score và max_score là số, không phải string
+       
         try:
             from decimal import Decimal
             score = Decimal(str(self.score)) if self.score else Decimal('0')
             max_score = Decimal(str(self.max_score)) if self.max_score else Decimal('100')
-            
-            # Tránh chia cho 0
+          
             if max_score > 0:
                 percentage = float((score / max_score) * 100)
             else:
@@ -152,7 +150,7 @@ class Grade(models.Model):
             else:
                 self.grade_letter = 'F'
         except (ValueError, TypeError, ZeroDivisionError) as e:
-            # Nếu có lỗi, đặt grade_letter mặc định
+         
             self.grade_letter = 'F'
         
         super().save(*args, **kwargs)
@@ -205,18 +203,15 @@ class Teacher(models.Model):
         return f"{self.user.get_full_name() or self.user.username} ({self.teacher_id})"
     
     def get_full_name(self):
-        # Lấy first_name và last_name, loại bỏ phần username trong ngoặc nếu có
+        
         first_name = self.user.first_name or ''
         last_name = self.user.last_name or ''
         
-        # Loại bỏ phần username trong ngoặc từ last_name nếu có
+     
         if last_name and '(' in last_name and ')' in last_name:
             # Tìm và loại bỏ phần trong ngoặc cuối cùng
             last_name = last_name.rsplit('(', 1)[0].strip()
         
-        # Hiển thị theo format: Họ Tên (First Name + Last Name)
-        # Trong database: first_name là họ, last_name là tên
-        # Ví dụ: first_name="Phan", last_name="Thùy Linh" => "Phan Thùy Linh"
         full_name = f"{first_name} {last_name}".strip()
         return full_name if full_name else self.user.username
     

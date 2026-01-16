@@ -4,9 +4,7 @@ from django.contrib import messages
 from django.http import HttpResponseForbidden
 
 def admin_required(view_func):
-    """
-    Decorator để kiểm tra user phải là admin
-    """
+
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -19,9 +17,7 @@ def admin_required(view_func):
     return _wrapped_view
 
 def teacher_required(view_func):
-    """
-    Decorator để kiểm tra user phải là giáo viên hoặc admin
-    """
+
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -34,9 +30,7 @@ def teacher_required(view_func):
     return _wrapped_view
 
 def student_required(view_func):
-    """
-    Decorator để kiểm tra user phải là học sinh
-    """
+
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -49,9 +43,7 @@ def student_required(view_func):
     return _wrapped_view
 
 def admin_or_teacher_required(view_func):
-    """
-    Decorator để kiểm tra user phải là admin hoặc giáo viên
-    """
+
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated:

@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
-# Create your views here.
+
 
 @admin_required
 def add_student(request):
@@ -29,7 +29,6 @@ def add_student(request):
         section = request.POST.get('section')
         student_image = request.FILES.get('student_image')
 
-        # Retrieve parent data from the form
         father_name = request.POST.get('father_name')
         father_occupation = request.POST.get('father_occupation')
         father_mobile = request.POST.get('father_mobile')
@@ -41,7 +40,6 @@ def add_student(request):
         present_address = request.POST.get('present_address')
         permanent_address = request.POST.get('permanent_address')
 
-        # save parent information
         parent = Parent.objects.create(
             father_name= father_name,
             father_occupation= father_occupation,
@@ -55,7 +53,6 @@ def add_student(request):
             permanent_address= permanent_address
         )
 
-        # Get class object if provided
         class_obj = None
         if student_class:
             try:
@@ -63,7 +60,6 @@ def add_student(request):
             except Class.DoesNotExist:
                 pass
 
-        # Save student information
         student = Student.objects.create(
             first_name= first_name,
             last_name= last_name,
@@ -91,8 +87,6 @@ def add_student(request):
 
 @admin_or_teacher_required
 def student_list(request):
-    # Admin và giáo viên xem tất cả học sinh
-    # Giáo viên chỉ xem học sinh trong lớp của mình
     if request.user.is_admin:
         all_classes = Class.objects.all().order_by('grade_level', 'class_name')
         student_list = Student.objects.select_related('parent', 'student_class').filter(is_active=True)
@@ -101,13 +95,11 @@ def student_list(request):
         all_classes = Class.objects.filter(class_teacher=request.user).order_by('grade_level', 'class_name')
         student_list = Student.objects.filter(student_class__in=all_classes, is_active=True).select_related('parent', 'student_class')
     
-    # Filtering theo lớp
     selected_class = None
     class_id = request.GET.get('class')
     if class_id:
         try:
             selected_class = Class.objects.get(id=class_id)
-            # Nếu là giáo viên, kiểm tra xem lớp có thuộc giáo viên không
             if request.user.is_teacher and selected_class.class_teacher != request.user:
                 messages.error(request, "Bạn không có quyền xem học sinh của lớp này!")
                 selected_class = None
@@ -116,7 +108,6 @@ def student_list(request):
         except Class.DoesNotExist:
             selected_class = None
     
-    # Sắp xếp theo alphabet (tên, họ)
     student_list = student_list.order_by('first_name', 'last_name')
     
     unread_notification = request.user.notification_set.filter(is_read=False)
@@ -131,23 +122,17 @@ def student_list(request):
 
 @admin_or_teacher_required
 def export_students_excel(request):
-    """
-    Export danh sách học sinh ra file Excel với đầy đủ thông tin
-    """
-    # Lấy danh sách học sinh theo quyền (giống student_list)
+    
     if request.user.is_admin:
         students = Student.objects.select_related('parent', 'student_class').filter(is_active=True)
     else:
-        # Giáo viên chỉ xem học sinh trong lớp mà họ là giáo viên chủ nhiệm
         classes = Class.objects.filter(class_teacher=request.user)
         students = Student.objects.filter(student_class__in=classes, is_active=True).select_related('parent', 'student_class')
     
-    # Filtering theo lớp nếu có
     class_id = request.GET.get('class')
     if class_id:
         try:
             selected_class = Class.objects.get(id=class_id)
-            # Nếu là giáo viên, kiểm tra xem lớp có thuộc giáo viên không
             if request.user.is_teacher and selected_class.class_teacher != request.user:
                 messages.error(request, "Bạn không có quyền xuất danh sách học sinh của lớp này!")
                 return redirect('student_list')
@@ -155,15 +140,12 @@ def export_students_excel(request):
         except Class.DoesNotExist:
             pass
     
-    # Sắp xếp theo alphabet (tên, họ)
     students = students.order_by('first_name', 'last_name')
     
-    # Tạo workbook và worksheet
     wb = Workbook()
     ws = wb.active
     ws.title = "Danh sách học sinh"
     
-    # Định nghĩa header
     headers = [
         'STT',
         'Mã học sinh',
@@ -190,7 +172,6 @@ def export_students_excel(request):
         'Trạng thái'
     ]
     
-    # Tạo header row với style
     header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF", size=11)
     
@@ -201,7 +182,6 @@ def export_students_excel(request):
         cell.font = header_font
         cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
     
-    # Điền dữ liệu
     for row_num, student in enumerate(students, 2):
         ws.cell(row=row_num, column=1, value=row_num - 1)  # STT
         ws.cell(row=row_num, column=2, value=student.student_id)
@@ -215,7 +195,6 @@ def export_students_excel(request):
         ws.cell(row=row_num, column=10, value=student.admission_number)
         ws.cell(row=row_num, column=11, value=student.section)
         
-        # Thông tin phụ huynh
         if student.parent:
             ws.cell(row=row_num, column=12, value=student.parent.father_name)
             ws.cell(row=row_num, column=13, value=student.parent.father_occupation)
@@ -231,40 +210,37 @@ def export_students_excel(request):
         ws.cell(row=row_num, column=22, value=student.religion)
         ws.cell(row=row_num, column=23, value='Đang học' if student.is_active else 'Đã nghỉ')
     
-    # Điều chỉnh độ rộng cột
     column_widths = {
-        'A': 6,   # STT
-        'B': 12,  # Mã học sinh
-        'C': 15,  # Họ
-        'D': 15,  # Tên
-        'E': 10,  # Giới tính
-        'F': 12,  # Ngày sinh
-        'G': 10,  # Lớp
-        'H': 15,  # Số điện thoại
-        'I': 12,  # Ngày nhập học
-        'J': 12,  # Số nhập học
-        'K': 8,   # Khối
-        'L': 20,  # Tên cha
-        'M': 20,  # Nghề nghiệp cha
-        'N': 15,  # SĐT cha
-        'O': 25,  # Email cha
-        'P': 20,  # Tên mẹ
-        'Q': 20,  # Nghề nghiệp mẹ
-        'R': 15,  # SĐT mẹ
-        'S': 25,  # Email mẹ
-        'T': 30,  # Địa chỉ hiện tại
-        'U': 30,  # Địa chỉ thường trú
-        'V': 15,  # Tôn giáo
-        'W': 12,  # Trạng thái
+        'A': 6,   
+        'B': 12,  
+        'C': 15, 
+        'D': 15, 
+        'E': 10, 
+        'F': 12, 
+        'G': 10, 
+        'H': 15,  
+        'I': 12, 
+        'J': 12, 
+        'K': 8,  
+        'L': 20, 
+        'M': 20, 
+        'N': 15, 
+        'O': 25,  
+        'P': 20, 
+        'Q': 20,  
+        'R': 15, 
+        'S': 25, 
+        'T': 30,  
+        'U': 30, 
+        'V': 15,  
+        'W': 12, 
     }
     
     for col_letter, width in column_widths.items():
         ws.column_dimensions[col_letter].width = width
     
-    # Đặt chiều cao cho header row
     ws.row_dimensions[1].height = 30
     
-    # Tạo response
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
@@ -293,7 +269,6 @@ def edit_student(request, pk):
         section = request.POST.get('section')
         student_image = request.FILES.get('student_image')  if request.FILES.get('student_image') else student.student_image
 
-        # Retrieve parent data from the form
         parent.father_name = request.POST.get('father_name')
         parent.father_occupation = request.POST.get('father_occupation')
         parent.father_mobile = request.POST.get('father_mobile')
@@ -306,9 +281,7 @@ def edit_student(request, pk):
         parent.permanent_address = request.POST.get('permanent_address')
         parent.save()
 
-#  update student information
 
-        # Get class object if provided
         class_obj = None
         if student_class:
             try:
@@ -342,17 +315,12 @@ def edit_student(request, pk):
 def view_student(request, pk):
     student = get_object_or_404(Student, pk=pk)
     
-    # Kiểm tra quyền: Admin xem tất cả, giáo viên xem học sinh trong lớp của mình, học sinh chỉ xem của mình
     if request.user.is_student:
-        # Học sinh chỉ xem thông tin của mình (so sánh qua email hoặc username)
-        # Tạm thời cho phép học sinh xem tất cả, nhưng có thể cải thiện bằng cách thêm user vào Student model
         pass
     elif request.user.is_teacher:
-        # Giáo viên chỉ xem học sinh trong lớp của mình
         if student.student_class and student.student_class.class_teacher != request.user:
             messages.error(request, "Bạn không có quyền xem thông tin học sinh này!")
             return redirect('student_list')
-    # Admin có thể xem tất cả
     
     context = {
         'student': student
@@ -372,7 +340,6 @@ def delete_student(request, pk):
         return redirect ('student_list')
     return HttpResponseForbidden()
 
-# ========== CLASS MANAGEMENT ==========
 @admin_or_teacher_required
 def class_list(request):
     # Admin xem tất cả lớp, giáo viên chỉ xem lớp của mình
@@ -418,7 +385,6 @@ def add_class(request):
         messages.success(request, "Đã thêm lớp học thành công!")
         return redirect('class_list')
     
-    # Chỉ hiển thị giáo viên đã có profile Teacher
     teachers = Teacher.objects.filter(is_active=True).select_related('user')
     context = {'teachers': teachers}
     return render(request, "students/add-class.html", context)
@@ -434,7 +400,6 @@ def edit_class(request, pk):
         class_teacher_id = request.POST.get('class_teacher')
         
         if class_teacher_id:
-            # Lấy user từ Teacher model
             teacher_obj = Teacher.objects.filter(id=class_teacher_id).first()
             if teacher_obj:
                 class_obj.class_teacher = teacher_obj.user
@@ -449,7 +414,6 @@ def edit_class(request, pk):
         messages.success(request, "Đã cập nhật lớp học thành công!")
         return redirect('class_list')
     
-    # Chỉ hiển thị giáo viên đã có profile Teacher
     teachers = Teacher.objects.filter(is_active=True).select_related('user')
     context = {'class_obj': class_obj, 'teachers': teachers}
     return render(request, "students/edit-class.html", context)
@@ -466,10 +430,8 @@ def delete_class(request, pk):
         return redirect('class_list')
     return HttpResponseForbidden()
 
-# ========== SUBJECT MANAGEMENT ==========
 @admin_or_teacher_required
 def subject_list(request):
-    # Admin xem tất cả môn học, giáo viên chỉ xem môn học của mình
     if request.user.is_admin:
         subjects = Subject.objects.select_related('teacher').all().order_by('subject_name')
     else:
@@ -493,7 +455,6 @@ def add_subject(request):
         teacher = None
         if teacher_id:
             from home_auth.models import CustomUser
-            # Lấy user từ Teacher model
             teacher_obj = Teacher.objects.filter(id=teacher_id).first()
             if teacher_obj:
                 teacher = teacher_obj.user
@@ -513,7 +474,6 @@ def add_subject(request):
         messages.success(request, "Đã thêm môn học thành công!")
         return redirect('subject_list')
     
-    # Chỉ hiển thị giáo viên đã có profile Teacher
     teachers = Teacher.objects.filter(is_active=True).select_related('user')
     context = {'teachers': teachers}
     return render(request, "students/add-subject.html", context)
@@ -529,7 +489,6 @@ def edit_subject(request, pk):
         
         if teacher_id:
             from home_auth.models import CustomUser
-            # Lấy user từ Teacher model
             teacher_obj = Teacher.objects.filter(id=teacher_id).first()
             if teacher_obj:
                 subject.teacher = teacher_obj.user
@@ -544,7 +503,6 @@ def edit_subject(request, pk):
         messages.success(request, "Đã cập nhật môn học thành công!")
         return redirect('subject_list')
     
-    # Chỉ hiển thị giáo viên đã có profile Teacher
     teachers = Teacher.objects.filter(is_active=True).select_related('user')
     context = {'subject': subject, 'teachers': teachers}
     return render(request, "students/edit-subject.html", context)
@@ -561,11 +519,8 @@ def delete_subject(request, pk):
         return redirect('subject_list')
     return HttpResponseForbidden()
 
-# ========== GRADE MANAGEMENT ==========
 @login_required
 def grade_list(request):
-    # Admin xem tất cả điểm, giáo viên chỉ xem điểm của lớp mình chủ nhiệm và môn học mình dạy
-    # Chỉ hiển thị điểm đã được duyệt (is_approved=True)
     if request.user.is_admin:
         grades = Grade.objects.select_related('student', 'subject').filter(is_approved=True)
         all_classes = Class.objects.all()
@@ -579,7 +534,6 @@ def grade_list(request):
             subject__in=teacher_subjects,
             is_approved=True
         ).select_related('student', 'subject')
-        # Chỉ hiển thị lớp của giáo viên
         all_classes = teacher_classes
         subjects = teacher_subjects
     else:
@@ -588,17 +542,14 @@ def grade_list(request):
         all_classes = Class.objects.all()
         subjects = Subject.objects.all()
     
-    # Filtering
     class_id = request.GET.get('class')
     subject_id = request.GET.get('subject')
     exam_type = request.GET.get('exam_type')
     
-    # Filter theo lớp
     selected_class = None
     if class_id:
         try:
             selected_class = Class.objects.get(id=class_id)
-            # Nếu là giáo viên, kiểm tra xem lớp có thuộc giáo viên không
             if request.user.is_teacher and selected_class.class_teacher != request.user:
                 messages.error(request, "Bạn không có quyền xem điểm của lớp này!")
                 selected_class = None
@@ -612,7 +563,6 @@ def grade_list(request):
     if exam_type:
         grades = grades.filter(exam_type=exam_type)
     
-    # Sắp xếp theo alphabet (tên học sinh)
     grades = grades.order_by('student__first_name', 'student__last_name', '-exam_date')
     
     context = {
@@ -636,7 +586,6 @@ def add_grade(request):
         exam_date = request.POST.get('exam_date')
         remarks = request.POST.get('remarks', '')
         
-        # Convert score và max_score từ string sang Decimal
         try:
             score = Decimal(str(score_str)) if score_str else Decimal('0')
             max_score = Decimal(str(max_score_str)) if max_score_str else Decimal('100')
@@ -663,7 +612,6 @@ def add_grade(request):
         student = get_object_or_404(Student, id=student_id)
         subject = get_object_or_404(Subject, id=subject_id)
         
-        # Kiểm tra quyền: giáo viên chỉ thêm điểm cho học sinh trong lớp mình chủ nhiệm và môn học mình dạy
         if not request.user.is_admin:
             if not student.student_class or student.student_class.class_teacher != request.user:
                 messages.error(request, "Bạn không có quyền thêm điểm cho học sinh này! Học sinh không thuộc lớp bạn chủ nhiệm.")
@@ -682,7 +630,6 @@ def add_grade(request):
             
             if subject.teacher != request.user:
                 messages.error(request, "Bạn không có quyền thêm điểm cho môn học này! Bạn không dạy môn học này.")
-                # Lấy lại danh sách lớp, học sinh và môn học theo quyền
                 all_classes = Class.objects.filter(class_teacher=request.user).order_by('class_name')
                 teacher_classes = Class.objects.filter(class_teacher=request.user)
                 students = Student.objects.filter(student_class__in=teacher_classes, is_active=True).order_by('first_name', 'last_name')
@@ -695,7 +642,6 @@ def add_grade(request):
                 }
                 return render(request, "students/add-grade.html", context)
         
-        # Nếu là admin, điểm được tự động duyệt. Nếu là giáo viên, cần chờ duyệt
         is_approved = request.user.is_admin
         
         grade = Grade.objects.create(
@@ -719,27 +665,23 @@ def add_grade(request):
             messages.success(request, "Đã gửi yêu cầu thêm điểm thành công! Điểm sẽ được hiển thị sau khi được admin duyệt.")
         return redirect('grade_list')
     
-    # Lấy danh sách lớp theo quyền
     if request.user.is_admin:
         all_classes = Class.objects.all().order_by('class_name')
     else:
         # Giáo viên chỉ thấy lớp mình chủ nhiệm
         all_classes = Class.objects.filter(class_teacher=request.user).order_by('class_name')
     
-    # Lọc học sinh theo lớp được chọn
     selected_class = None
     class_id = request.GET.get('class')
     if class_id:
         try:
             selected_class = Class.objects.get(id=class_id)
-            # Kiểm tra quyền: giáo viên chỉ chọn được lớp của mình
             if request.user.is_teacher and selected_class.class_teacher != request.user:
                 messages.error(request, "Bạn không có quyền chọn lớp này!")
                 selected_class = None
         except Class.DoesNotExist:
             selected_class = None
     
-    # Lấy danh sách học sinh và môn học theo quyền
     if request.user.is_admin:
         if selected_class:
             students = Student.objects.filter(student_class=selected_class, is_active=True).order_by('first_name', 'last_name')
@@ -747,10 +689,8 @@ def add_grade(request):
             students = Student.objects.filter(is_active=True).order_by('first_name', 'last_name')
         subjects = Subject.objects.all().order_by('subject_name')
     else:
-        # Giáo viên chỉ thấy học sinh trong lớp mình chủ nhiệm và môn học mình dạy
         teacher_classes = Class.objects.filter(class_teacher=request.user)
         if selected_class:
-            # Nếu chọn lớp, chỉ hiển thị học sinh của lớp đó
             if selected_class in teacher_classes:
                 students = Student.objects.filter(student_class=selected_class, is_active=True).order_by('first_name', 'last_name')
             else:
@@ -771,7 +711,6 @@ def add_grade(request):
 def edit_grade(request, pk):
     grade = get_object_or_404(Grade, pk=pk)
     
-    # Kiểm tra quyền: giáo viên chỉ sửa được điểm của học sinh trong lớp mình chủ nhiệm và môn học mình dạy
     if not request.user.is_admin:
         if not grade.student.student_class or grade.student.student_class.class_teacher != request.user:
             messages.error(request, "Bạn không có quyền sửa điểm này! Học sinh không thuộc lớp bạn chủ nhiệm.")
@@ -787,14 +726,12 @@ def edit_grade(request, pk):
         new_subject_id = request.POST.get('subject')
         exam_type = request.POST.get('exam_type')
         
-        # Kiểm tra quyền với học sinh và môn học mới (nếu có thay đổi)
         if not request.user.is_admin:
             new_student = get_object_or_404(Student, id=new_student_id)
             new_subject = get_object_or_404(Subject, id=new_subject_id)
             
             if not new_student.student_class or new_student.student_class.class_teacher != request.user:
                 messages.error(request, "Bạn không có quyền sửa điểm này! Học sinh không thuộc lớp bạn chủ nhiệm.")
-                # Lấy lại danh sách học sinh và môn học theo quyền
                 teacher_classes = Class.objects.filter(class_teacher=request.user)
                 students = Student.objects.filter(student_class__in=teacher_classes, is_active=True)
                 subjects = Subject.objects.filter(teacher=request.user)
@@ -803,7 +740,6 @@ def edit_grade(request, pk):
             
             if new_subject.teacher != request.user:
                 messages.error(request, "Bạn không có quyền sửa điểm này! Bạn không dạy môn học này.")
-                # Lấy lại danh sách học sinh và môn học theo quyền
                 teacher_classes = Class.objects.filter(class_teacher=request.user)
                 students = Student.objects.filter(student_class__in=teacher_classes, is_active=True)
                 subjects = Subject.objects.filter(teacher=request.user)
@@ -814,7 +750,6 @@ def edit_grade(request, pk):
         grade.subject_id = new_subject_id
         grade.exam_type = exam_type
         
-        # Convert score và max_score từ string sang Decimal
         try:
             score_str = request.POST.get('score')
             max_score_str = request.POST.get('max_score', '100')
@@ -822,7 +757,6 @@ def edit_grade(request, pk):
             grade.max_score = Decimal(str(max_score_str)) if max_score_str else Decimal('100')
         except (ValueError, InvalidOperation) as e:
             messages.error(request, f"Điểm số không hợp lệ: {str(e)}")
-            # Lấy lại danh sách học sinh và môn học theo quyền
             if request.user.is_admin:
                 students = Student.objects.filter(is_active=True)
                 subjects = Subject.objects.all()
@@ -836,13 +770,11 @@ def edit_grade(request, pk):
         grade.exam_date = request.POST.get('exam_date')
         grade.remarks = request.POST.get('remarks', '')
         
-        # Nếu là admin, điểm được tự động duyệt. Nếu là giáo viên, cần chờ duyệt lại
         if request.user.is_admin:
             grade.is_approved = True
             grade.approved_by = request.user
             grade.approved_at = timezone.now()
         else:
-            # Giáo viên sửa điểm thì cần duyệt lại
             grade.is_approved = False
             grade.approved_by = None
             grade.approved_at = None
@@ -857,7 +789,6 @@ def edit_grade(request, pk):
             messages.success(request, "Đã gửi yêu cầu cập nhật điểm thành công! Điểm sẽ được hiển thị sau khi được admin duyệt.")
         return redirect('grade_list')
     
-    # Lấy danh sách học sinh và môn học theo quyền
     if request.user.is_admin:
         students = Student.objects.filter(is_active=True)
         subjects = Subject.objects.all()
@@ -874,7 +805,6 @@ def edit_grade(request, pk):
 def delete_grade(request, pk):
     grade = get_object_or_404(Grade, pk=pk)
     
-    # Kiểm tra quyền: giáo viên chỉ xóa được điểm của học sinh trong lớp mình chủ nhiệm và môn học mình dạy
     if not request.user.is_admin:
         if not grade.student.student_class or grade.student.student_class.class_teacher != request.user:
             messages.error(request, "Bạn không có quyền xóa điểm này! Học sinh không thuộc lớp bạn chủ nhiệm.")
@@ -892,24 +822,18 @@ def delete_grade(request, pk):
 @admin_required
 def approve_grades(request):
     """
-    Trang admin xem danh sách điểm chờ duyệt
     """
-    # Lấy danh sách tất cả lớp và môn học
     all_classes = Class.objects.all().order_by('class_name')
     all_subjects = Subject.objects.all().order_by('subject_name')
     
-    # Lấy danh sách các loại kiểm tra thực tế có trong database (từ điểm chờ duyệt)
     exam_types_in_db = Grade.objects.filter(is_approved=False).values_list('exam_type', flat=True).distinct().order_by('exam_type')
     
-    # Lấy các filter từ GET parameters
     class_id = request.GET.get('class')
     subject_id = request.GET.get('subject')
     exam_type = request.GET.get('exam_type')
     
-    # Khởi tạo queryset điểm chờ duyệt
     pending_grades = Grade.objects.filter(is_approved=False).select_related('student', 'subject', 'student__student_class')
     
-    # Lọc theo lớp
     selected_class = None
     if class_id:
         try:
@@ -918,7 +842,6 @@ def approve_grades(request):
         except Class.DoesNotExist:
             selected_class = None
     
-    # Lọc theo môn học
     selected_subject = None
     if subject_id:
         try:
@@ -927,12 +850,10 @@ def approve_grades(request):
         except Subject.DoesNotExist:
             selected_subject = None
     
-    # Lọc theo loại kiểm tra
     selected_exam_type = exam_type if exam_type else None
     if exam_type:
         pending_grades = pending_grades.filter(exam_type=exam_type)
     
-    # Sắp xếp theo ngày tạo
     pending_grades = pending_grades.order_by('created_at')
     
     context = {
@@ -949,7 +870,6 @@ def approve_grades(request):
 @admin_required
 def approve_grade(request, pk):
     """
-    Admin duyệt điểm
     """
     grade = get_object_or_404(Grade, pk=pk)
     
@@ -963,7 +883,6 @@ def approve_grade(request, pk):
         Notification.objects.create(user=request.user, message=f"Đã duyệt điểm cho {grade.student.first_name} - {grade.subject.subject_name}")
         messages.success(request, f"Đã duyệt điểm cho {grade.student.first_name} - {grade.subject.subject_name} thành công!")
         
-        # Giữ lại tất cả filter khi redirect
         params = []
         if request.GET.get('class'):
             params.append(f"class={request.GET.get('class')}")
@@ -981,7 +900,6 @@ def approve_grade(request, pk):
 @admin_required
 def reject_grade(request, pk):
     """
-    Admin từ chối điểm (xóa điểm chờ duyệt)
     """
     grade = get_object_or_404(Grade, pk=pk)
     
@@ -1011,19 +929,14 @@ def reject_grade(request, pk):
 
 @admin_required
 def approve_all_grades(request):
-    """
-    Admin duyệt tất cả điểm chờ duyệt (có thể lọc theo lớp, môn học, loại kiểm tra)
-    """
+
     if request.method == "POST":
-        # Lấy các filter từ GET parameters
         class_id = request.GET.get('class')
         subject_id = request.GET.get('subject')
         exam_type = request.GET.get('exam_type')
         
-        # Khởi tạo queryset điểm chờ duyệt
         pending_grades = Grade.objects.filter(is_approved=False)
         
-        # Lọc theo lớp
         selected_class = None
         if class_id:
             try:
@@ -1032,7 +945,6 @@ def approve_all_grades(request):
             except Class.DoesNotExist:
                 pass
         
-        # Lọc theo môn học
         selected_subject = None
         if subject_id:
             try:
@@ -1041,14 +953,12 @@ def approve_all_grades(request):
             except Subject.DoesNotExist:
                 pass
         
-        # Lọc theo loại kiểm tra
         if exam_type:
             pending_grades = pending_grades.filter(exam_type=exam_type)
         
         count = pending_grades.count()
         
         if count > 0:
-            # Duyệt tất cả điểm
             now = timezone.now()
             pending_grades.update(
                 is_approved=True,
@@ -1078,7 +988,6 @@ def approve_all_grades(request):
         else:
             messages.info(request, "Không có điểm nào đang chờ duyệt.")
         
-        # Giữ lại tất cả filter khi redirect
         params = []
         if class_id:
             params.append(f"class={class_id}")
@@ -1096,10 +1005,8 @@ def approve_all_grades(request):
 @login_required
 def student_grades(request, pk):
     student = get_object_or_404(Student, pk=pk)
-    # Chỉ hiển thị điểm đã được duyệt
     grades = Grade.objects.filter(student=student, is_approved=True).select_related('subject').order_by('subject__subject_name', '-exam_date')
     
-    # Calculate statistics - sắp xếp môn học theo alphabet
     subjects = Subject.objects.all().order_by('subject_name')
     subject_stats = []
     for subject in subjects:
@@ -1119,37 +1026,30 @@ def student_grades(request, pk):
     }
     return render(request, "students/student-grades.html", context)
 
-# ========== ATTENDANCE MANAGEMENT ==========
 @login_required
 def attendance_list(request):
-    # Admin xem tất cả điểm danh, giáo viên chỉ xem điểm danh của lớp mình, học sinh chỉ xem của mình
     if request.user.is_admin:
         attendances = Attendance.objects.select_related('student').all()
         students = Student.objects.filter(is_active=True)
         all_classes = Class.objects.all()
     elif request.user.is_teacher:
-        # Giáo viên chỉ xem điểm danh của học sinh trong lớp của mình
         classes = Class.objects.filter(class_teacher=request.user)
         students = Student.objects.filter(student_class__in=classes, is_active=True)
         attendances = Attendance.objects.filter(student__in=students).select_related('student')
         all_classes = classes
     else:
-        # Học sinh chỉ xem điểm danh của mình (tạm thời cho phép xem tất cả)
         attendances = Attendance.objects.select_related('student').all()
         students = Student.objects.filter(is_active=True)
         all_classes = Class.objects.all()
     
-    # Filtering
     class_id = request.GET.get('class')
     student_id = request.GET.get('student')
     date = request.GET.get('date')
     status = request.GET.get('status')
     
-    # Filter theo lớp
     if class_id:
         try:
             selected_class = Class.objects.get(id=class_id)
-            # Nếu là giáo viên, kiểm tra xem lớp có thuộc giáo viên không
             if request.user.is_teacher and selected_class.class_teacher != request.user:
                 messages.error(request, "Bạn không có quyền xem điểm danh của lớp này!")
                 selected_class = None
@@ -1168,7 +1068,6 @@ def attendance_list(request):
     if status:
         attendances = attendances.filter(status=status)
     
-    # Sắp xếp theo alphabet (tên học sinh)
     attendances = attendances.order_by('student__first_name', 'student__last_name', '-date')
     
     context = {
@@ -1187,7 +1086,6 @@ def add_attendance(request):
         statuses = request.POST.getlist('status')
         remarks_list = request.POST.getlist('remarks')
         
-        # Kiểm tra ngày có hợp lệ không
         try:
             from datetime import datetime
             attendance_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -1195,7 +1093,6 @@ def add_attendance(request):
             messages.error(request, "Ngày không hợp lệ!")
             return redirect('add_attendance')
         
-        # Kiểm tra không cho phép điểm danh vào chủ nhật (isoweekday() == 7)
         if attendance_date.isoweekday() == 7:
             messages.error(request, "Không thể điểm danh vào chủ nhật!")
             return redirect('add_attendance')
@@ -1216,21 +1113,17 @@ def add_attendance(request):
         messages.success(request, "Đã điểm danh thành công!")
         return redirect('attendance_list')
     
-    # Get today's date or selected date
     selected_date = request.GET.get('date', timezone.now().date().isoformat())
     class_id = request.GET.get('class')
     
-    # Lấy danh sách lớp (giáo viên chỉ thấy lớp của mình)
     if request.user.is_admin:
         classes = Class.objects.all()
     else:
-        # Giáo viên chỉ thấy lớp của mình
         classes = Class.objects.filter(class_teacher=request.user)
     
     if class_id:
         try:
             selected_class = Class.objects.get(id=class_id)
-            # Kiểm tra quyền: giáo viên chỉ có thể điểm danh lớp của mình
             if not request.user.is_admin and selected_class.class_teacher != request.user:
                 messages.error(request, "Bạn không có quyền điểm danh lớp này!")
                 selected_class = None
@@ -1242,13 +1135,11 @@ def add_attendance(request):
             students = Student.objects.none()
     else:
         selected_class = None
-        # Nếu không chọn lớp, giáo viên chỉ thấy học sinh trong lớp của mình
         if request.user.is_admin:
             students = Student.objects.filter(is_active=True)
         else:
             students = Student.objects.filter(student_class__in=classes, is_active=True)
     
-    # Get existing attendance for the date
     existing_attendance = {}
     if selected_date:
         for att in Attendance.objects.filter(date=selected_date, student__in=students):
@@ -1267,7 +1158,6 @@ def add_attendance(request):
 def edit_attendance(request, pk):
     attendance = get_object_or_404(Attendance, pk=pk)
     
-    # Giáo viên chỉ sửa được điểm danh của học sinh trong lớp của mình
     if not request.user.is_admin:
         if not attendance.student.student_class or attendance.student.student_class.class_teacher != request.user:
             messages.error(request, "Bạn không có quyền sửa điểm danh này!")
@@ -1288,7 +1178,6 @@ def edit_attendance(request, pk):
 def delete_attendance(request, pk):
     attendance = get_object_or_404(Attendance, pk=pk)
     
-    # Giáo viên chỉ xóa được điểm danh của học sinh trong lớp của mình
     if not request.user.is_admin:
         if not attendance.student.student_class or attendance.student.student_class.class_teacher != request.user:
             messages.error(request, "Bạn không có quyền xóa điểm danh này!")
@@ -1305,7 +1194,6 @@ def student_attendance(request, pk):
     student = get_object_or_404(Student, pk=pk)
     attendances = Attendance.objects.filter(student=student).order_by('-date')
     
-    # Calculate statistics
     total_days = attendances.count()
     present_count = attendances.filter(status='Present').count()
     absent_count = attendances.filter(status='Absent').count()
@@ -1326,7 +1214,6 @@ def student_attendance(request, pk):
     }
     return render(request, "students/student-attendance.html", context)
 
-# ========== REPORTS & STATISTICS ==========
 @admin_or_teacher_required
 def reports_dashboard(request):
     # Student statistics
@@ -1334,7 +1221,6 @@ def reports_dashboard(request):
     total_classes = Class.objects.count()
     total_subjects = Subject.objects.count()
     
-    # Attendance statistics (last 30 days)
     thirty_days_ago = timezone.now().date() - timedelta(days=30)
     recent_attendance = Attendance.objects.filter(date__gte=thirty_days_ago)
     attendance_rate = 0
@@ -1342,16 +1228,13 @@ def reports_dashboard(request):
         present_count = recent_attendance.filter(status='Present').count()
         attendance_rate = (present_count / recent_attendance.count()) * 100
     
-    # Grade statistics
     recent_grades = Grade.objects.filter(exam_date__gte=thirty_days_ago)
     avg_score = recent_grades.aggregate(Avg('score'))['score__avg'] or 0
     
-    # Class statistics
     class_stats = []
     for class_obj in Class.objects.all():
         student_count = class_obj.students.filter(is_active=True).count()
         
-        # Tính điểm trung bình của lớp (điểm trung bình của tất cả học sinh trong lớp)
         students_in_class = class_obj.students.filter(is_active=True)
         average_grade = None
         if students_in_class.exists():
@@ -1380,7 +1263,6 @@ def reports_dashboard(request):
     }
     return render(request, "students/reports-dashboard.html", context)
 
-# ========== TEACHER MANAGEMENT ==========
 @admin_required
 def teacher_list(request):
     # Lấy tất cả giáo viên có Teacher profile, sắp xếp theo alphabet
@@ -1401,18 +1283,15 @@ def add_teacher(request):
         phone_number = request.POST.get('phone_number', '')
         specialization = request.POST.get('specialization', '')
         
-        # Kiểm tra username đã tồn tại chưa
         if CustomUser.objects.filter(username=username).exists():
             messages.error(request, "Tên đăng nhập đã tồn tại!")
             return render(request, "students/add-teacher.html")
         
-        # Kiểm tra email đã tồn tại chưa
         if CustomUser.objects.filter(email=email).exists():
             messages.error(request, "Email đã tồn tại!")
             return render(request, "students/add-teacher.html")
         
         try:
-            # Tạo tài khoản giáo viên
             user_account = CustomUser.objects.create_user(
                 username=username,
                 email=email,
@@ -1421,17 +1300,16 @@ def add_teacher(request):
                 password=password,
             )
             user_account.is_teacher = True
-            user_account.is_authorized = True  # Tự động authorize cho giáo viên được admin tạo
+            user_account.is_authorized = True 
             user_account.save()
             
-            # Tự động tạo teacher_id
+
             teacher_id = f"GV{user_account.id:04d}"
             counter = 1
             while Teacher.objects.filter(teacher_id=teacher_id).exists():
                 teacher_id = f"GV{user_account.id:04d}-{counter}"
                 counter += 1
             
-            # Tạo profile giáo viên với các giá trị mặc định
             teacher = Teacher.objects.create(
                 teacher_id=teacher_id,
                 user=user_account,
@@ -1466,31 +1344,26 @@ def edit_teacher(request, pk):
         phone_number = request.POST.get('phone_number', '')
         specialization = request.POST.get('specialization', '')
         
-        # Kiểm tra username đã tồn tại chưa (trừ chính giáo viên này)
         if user.username != new_username and user.__class__.objects.filter(username=new_username).exclude(pk=user.pk).exists():
             messages.error(request, "Tên đăng nhập đã tồn tại!")
             context = {'teacher': teacher}
             return render(request, "students/edit-teacher.html", context)
         
-        # Kiểm tra email đã tồn tại chưa (trừ chính giáo viên này)
         if user.email != new_email and user.__class__.objects.filter(email=new_email).exclude(pk=user.pk).exists():
             messages.error(request, "Email đã tồn tại!")
             context = {'teacher': teacher}
             return render(request, "students/edit-teacher.html", context)
         
-        # Cập nhật thông tin tài khoản
         user.username = new_username
         user.email = new_email
         user.first_name = first_name
         user.last_name = last_name
         user.save()
         
-        # Cập nhật thông tin Teacher profile
         teacher.phone_number = phone_number
         teacher.specialization = specialization
         teacher.save()
         
-        # Cập nhật mật khẩu nếu có
         new_password = request.POST.get('password')
         if new_password:
             user.set_password(new_password)
@@ -1512,12 +1385,8 @@ def delete_teacher(request, pk):
         teacher_name = teacher.get_full_name()
         user = teacher.user
         
-        # Xóa profile giáo viên (sẽ không xóa tài khoản user)
         teacher.delete()
         
-        # Có thể xóa hoặc vô hiệu hóa tài khoản user
-        # Nếu muốn xóa tài khoản: user.delete()
-        # Nếu chỉ vô hiệu hóa:
         user.is_teacher = False
         user.save()
         

@@ -116,7 +116,7 @@ function checkSunday(input) {
         return true;
     }
     const selectedDate = new Date(input.value);
-    const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const dayOfWeek = selectedDate.getDay(); 
     
     if (dayOfWeek === 0) {
         alert('Không thể điểm danh vào chủ nhật! Vui lòng chọn ngày khác.');
@@ -128,7 +128,6 @@ function checkSunday(input) {
 
 function handleDateChange(input) {
     if (checkSunday(input) && input.value) {
-        // Chỉ submit form nếu ngày hợp lệ (không phải chủ nhật)
         input.form.submit();
     }
 }
