@@ -155,11 +155,12 @@
                 <span>{% trans "Main Menu" %}</span>
               </li>
               <li class="submenu active">
-                <a href="{% url 'dashboard' %}"
-                  ><i class="fas fa-user-graduate"></i>
-                  <span> {% trans "Dashboard" %}</span></a
-                >
+                <a href="{% url 'dashboard' %}">
+                  <i class="fas fa-user-graduate"></i>
+                  <span>Trang chủ</span>
+                </a>
               </li>
+
               {% if user.is_admin or user.is_teacher %}
               <li class="submenu">
                 <a href="#"

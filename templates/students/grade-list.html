@@ -71,7 +71,7 @@
                                        <th>{% trans "Subject" %}</th>
                                        <th>{% trans "Exam Type" %}</th>
                                        <th>{% trans "Score" %}</th>
-                                       <th>{% trans "Grade" %}</th>
+
                                        <th>{% trans "Exam Date" %}</th>
                                        <th class="text-right">{% trans "Action" %}</th>
                                     </tr>
@@ -84,7 +84,6 @@
                                        <td>{{ grade.subject.subject_name }}</td>
                                        <td>{{ grade.get_exam_type_display }}</td>
                                        <td>{{ grade.score }}/{{ grade.max_score }}</td>
-                                       <td><span class="badge badge-{% if grade.grade_letter == 'A+' or grade.grade_letter == 'A' %}success{% elif grade.grade_letter == 'B+' or grade.grade_letter == 'B' %}info{% elif grade.grade_letter == 'C+' or grade.grade_letter == 'C' %}warning{% else %}danger{% endif %}">{{ grade.grade_letter }}</span></td>
                                        <td>{{ grade.exam_date|date:"d/m/Y" }}</td>
                                        <td class="text-right">
                                           <div class="actions">
