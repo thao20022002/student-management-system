@@ -1,0 +1,53 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+<div class="page-wrapper">
+   <div class="content container-fluid">
+      <div class="page-header">
+         <div class="row align-items-center">
+            <div class="col">
+               <h3 class="page-title">Import thí sinh tuyển sinh lớp 10</h3>
+               <ul class="breadcrumb">
+                  <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                  <li class="breadcrumb-item active">Import thí sinh</li>
+               </ul>
+            </div>
+         </div>
+      </div>
+      <div class="row">
+         <div class="col-sm-12">
+            <div class="card">
+               <div class="card-body">
+                  <form method="POST" enctype="multipart/form-data">
+                     {% csrf_token %}
+                     <div class="row">
+                        <div class="col-12 mb-3">
+                           <p>Chọn file Excel chứa danh sách thí sinh đăng ký dự tuyển lớp 10.</p>
+                           <p>Các cột bắt buộc: <strong>exam_number, full_name, date_of_birth, previous_school</strong></p>
+                           <p>Ví dụ định dạng ngày: <strong>dd/mm/YYYY</strong>, <strong>YYYY-mm-dd</strong>, <strong>dd-mm-YYYY</strong></p>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                           <div class="form-group">
+                              <label>File Excel</label>
+                              <input type="file" class="form-control" name="excel_file" accept=".xlsx,.xls" required>
+                           </div>
+                        </div>
+                        <div class="col-12 mt-3">
+                           <button type="submit" class="btn btn-primary">Import thí sinh</button>
+                           <a href="{% url 'dashboard' %}" class="btn btn-secondary">Quay lại Dashboard</a>
+                        </div>
+                     </div>
+                  </form>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
+<script src="{% static 'assets/js/jquery-3.6.0.min.js' %}"></script>
+<script src="{% static 'assets/js/popper.min.js' %}"></script>
+<script src="{% static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+<script src="{% static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+<script src="{% static 'assets/js/script.js' %}"></script>
+{% endblock %}

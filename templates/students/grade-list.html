@@ -80,7 +80,7 @@
                                     {% for grade in grades %}
                                     <tr>
                                        <td>{{ forloop.counter }}</td>
-                                       <td>{{ grade.student.first_name }} {{ grade.student.last_name }}</td>
+                                       <td>{{ grade.student.last_name }} {{ grade.student.first_name }}</td>
                                        <td>{{ grade.subject.subject_name }}</td>
                                        <td>{{ grade.get_exam_type_display }}</td>
                                        <td>{{ grade.score }}/{{ grade.max_score }}</td>

@@ -8,10 +8,10 @@
                <div class="page-header">
                   <div class="row align-items-center">
                      <div class="col">
-                        <h3 class="page-title">{% trans "Edit Teacher" %}</h3>
+                        <h3 class="page-title">{% trans "Chỉnh sửa thông tin giáo viên" %}</h3>
                         <ul class="breadcrumb">
-                           <li class="breadcrumb-item"><a href="{% url 'teacher_list' %}">{% trans "Teachers" %}</a></li>
-                           <li class="breadcrumb-item active">{% trans "Edit Teacher" %}</li>
+                           <li class="breadcrumb-item"><a href="{% url 'teacher_list' %}">{% trans "Giáo viên" %}</a></li>
+                           <li class="breadcrumb-item active">{% trans "Chỉnh sửa thông tin giáo viên" %}</li>
                         </ul>
                      </div>
                   </div>
@@ -24,7 +24,7 @@
                               {% csrf_token %}
                               <div class="row">
                                  <div class="col-12">
-                                    <h5 class="form-title"><span>{% trans "Teacher Information" %}</span></h5>
+                                    <h5 class="form-title"><span>{% trans "Thông tin giáo viên" %}</span></h5>
                                  </div>
                                  <div class="col-12 col-sm-6">
                                     <div class="form-group">
@@ -41,13 +41,13 @@
                                  <div class="col-12 col-sm-6">
                                     <div class="form-group">
                                        <label>Họ</label>
-                                       <input type="text" class="form-control" name="first_name" value="{{ teacher.user.first_name }}" required>
+                                       <input type="text" class="form-control" name="last_name" value="{{ teacher.user.last_name }}" required>
                                     </div>
                                  </div>
                                  <div class="col-12 col-sm-6">
                                     <div class="form-group">
                                        <label>Tên</label>
-                                       <input type="text" class="form-control" name="last_name" value="{{ teacher.user.last_name }}" required>
+                                       <input type="text" class="form-control" name="first_name" value="{{ teacher.user.first_name }}" required>
                                     </div>
                                  </div>
                                  <div class="col-12 col-sm-6">
@@ -64,7 +64,7 @@
                                  </div>
                                  <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                       <label>{% trans "New Password" %} <small>({% trans "Leave blank to keep current password" %})</small></label>
+                                       <label>{% trans "New Password" %} <small>({% trans "Để trống nếu giữ mật khẩu hiện tại" %})</small></label>
                                        <input type="password" class="form-control" name="password" placeholder="{% trans 'Enter new password' %}">
                                     </div>
                                  </div>

@@ -7,10 +7,10 @@
         <div class="page-header">
             <div class="row align-items-center">
                 <div class="col">
-                    <h3 class="page-title">{% trans "Edit Students" %}</h3>
+                    <h3 class="page-title">Chỉnh sửa học sinh</h3>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="/students">{% trans "Students" %}</a></li>
-                        <li class="breadcrumb-item active">{% trans "Edit Students" %}</li>
+                        <li class="breadcrumb-item"><a href="/students">Học sinh</a></li>
+                        <li class="breadcrumb-item active">Chỉnh sửa học sinh</li>
                     </ul>
                 </div>
             </div>
@@ -23,47 +23,47 @@
                             {% csrf_token %}
                             <div class="row">
                                 <div class="col-12">
-                                    <h5 class="form-title"><span>{% trans "Student Information" %}</span></h5>
+                                    <h5 class="form-title"><span>Thông tin học sinh</span></h5>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>{% trans "First Name" %}</label>
-                                        <input type="text" name="first_name" class="form-control" value="{{ student.first_name }}">
-                                    </div>
-                                </div>
-                                <div class="col-12 col-sm-6">
-                                    <div class="form-group">
-                                        <label>Last Name</label>
+                                        <label>Họ</label>
                                         <input type="text" name="last_name" class="form-control" value="{{ student.last_name }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Student Id</label>
+                                        <label>Tên</label>
+                                        <input type="text" name="first_name" class="form-control" value="{{ student.first_name }}">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                        <label>Mã học sinh</label>
                                         <input type="text" name="student_id" class="form-control" value="{{ student.student_id }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Gender</label>
+                                        <label>Giới tính</label>
                                         <select name="gender" class="form-control">
-                                            <option value="Female" {% if student.gender == 'Female' %}selected{% endif %}>Female</option>
-                                            <option value="Male" {% if student.gender == 'Male' %}selected{% endif %}>Male</option>
-                                            <option value="Others" {% if student.gender == 'Others' %}selected{% endif %}>Others</option>
+                                            <option value="Female" {% if student.gender == 'Female' %}selected{% endif %}>Nữ</option>
+                                            <option value="Male" {% if student.gender == 'Male' %}selected{% endif %}>Nam</option>
+                                            <option value="Others" {% if student.gender == 'Others' %}selected{% endif %}>Khác</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Date of Birth</label>
+                                        <label>Ngày sinh</label>
                                         <input type="date" name="date_of_birth" class="form-control" value="{{ student.date_of_birth|date:'Y-m-d' }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>{% trans "Class" %}</label>
+                                        <label>Lớp</label>
                                         <select name="student_class" class="form-control">
-                                           <option value="">{% trans "Select Class" %}</option>
+                                           <option value="">Chọn lớp</option>
                                            {% for class in classes %}
                                            <option value="{{ class.pk }}" {% if student.student_class.id == class.id %}selected{% endif %}>{{ class.class_name }} - {{ class.grade_level }}</option>
                                            {% endfor %}
@@ -72,110 +72,110 @@
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Religion</label>
+                                        <label>Tôn giáo</label>
                                         <input type="text" name="religion" class="form-control" value="{{ student.religion }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Joining Date</label>
+                                        <label>Ngày nhập học</label>
                                         <input type="date" name="joining_date" class="form-control" value="{{ student.joining_date|date:'Y-m-d' }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Mobile Number</label>
+                                        <label>Số điện thoại</label>
                                         <input type="text" name="mobile_number" class="form-control" value="{{ student.mobile_number }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Admission Number</label>
+                                        <label>Số nhập học</label>
                                         <input type="text" name="admission_number" class="form-control" value="{{ student.admission_number }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Section</label>
+                                        <label>Khối</label>
                                         <input type="text" name="section" class="form-control" value="{{ student.section }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Student Image</label>
+                                        <label>Ảnh học sinh</label>
                                         <input type="file" name="student_image" class="form-control">
                                         {% if student.student_image %}
-                                        <small>Current Image: <a href="{{ student.student_image.url }}" target="_blank">{{ student.student_image.url }}</a></small>
+                                        <small>Ảnh hiện tại: <a href="{{ student.student_image.url }}" target="_blank">{{ student.student_image.url }}</a></small>
                                         {% else %}
-                                        <small>No image uploaded</small>
+                                        <small>Chưa tải ảnh</small>
                                         {% endif %}
                                     </div>
                                 </div>
                                 <div class="col-12">
-                                    <h5 class="form-title"><span>Parent Information</span></h5>
+                                    <h5 class="form-title"><span>Thông tin phụ huynh</span></h5>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Father's Name</label>
+                                        <label>Tên cha</label>
                                         <input type="text" name="father_name" class="form-control" value="{{ parent.father_name }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Father's Occupation</label>
+                                        <label>Nghề nghiệp cha</label>
                                         <input type="text" name="father_occupation" class="form-control" value="{{ parent.father_occupation }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Father's Mobile</label>
+                                        <label>Số điện thoại cha</label>
                                         <input type="text" name="father_mobile" class="form-control" value="{{ parent.father_mobile }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Father's Email</label>
+                                        <label>Email cha</label>
                                         <input type="email" name="father_email" class="form-control" value="{{ parent.father_email }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Mother's Name</label>
+                                        <label>Tên mẹ</label>
                                         <input type="text" name="mother_name" class="form-control" value="{{ parent.mother_name }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Mother's Occupation</label>
+                                        <label>Nghề nghiệp mẹ</label>
                                         <input type="text" name="mother_occupation" class="form-control" value="{{ parent.mother_occupation }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Mother's Mobile</label>
+                                        <label>Số điện thoại mẹ</label>
                                         <input type="text" name="mother_mobile" class="form-control" value="{{ parent.mother_mobile }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Mother's Email</label>
+                                        <label>Email mẹ</label>
                                         <input type="email" name="mother_email" class="form-control" value="{{ parent.mother_email }}">
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Present Address</label>
+                                        <label>Địa chỉ hiện tại</label>
                                         <textarea name="present_address" class="form-control">{{ parent.present_address }}</textarea>
                                     </div>
                                 </div>
                                 <div class="col-12 col-sm-6">
                                     <div class="form-group">
-                                        <label>Permanent Address</label>
+                                        <label>Địa chỉ thường trú</label>
                                         <textarea name="permanent_address" class="form-control">{{ parent.permanent_address }}</textarea>
                                     </div>
                                 </div>
                                 <div class="col-12">
-                                    <button type="submit" class="btn btn-primary">Submit</button>
+                                    <button type="submit" class="btn btn-primary">Cập nhật</button>
                                 </div>
                             </div>
                         </form>

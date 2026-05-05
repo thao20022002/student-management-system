@@ -38,6 +38,12 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return self.username
 
+    def get_full_name(self):
+        """Override để hiển thị tên theo định dạng Việt: family_name + given_name"""
+        # Giữ nguyên Django chuẩn: first_name=given_name, last_name=family_name
+        # Hiển thị: last_name first_name (Việt: Họ + Tên)
+        return f"{self.first_name} {self.last_name}".strip() or self.username
+
 class PasswordResetRequest(models.Model):
     user = models.ForeignKey('CustomUser', on_delete=models.CASCADE)
     email = models.EmailField()

@@ -42,7 +42,7 @@
                                        <select class="form-control" name="student" required>
                                           <option value="">{% trans "Select Student" %}</option>
                                           {% for student in students %}
-                                          <option value="{{ student.id }}">{{ student.first_name }} {{ student.last_name }} ({{ student.student_id }})</option>
+                                          <option value="{{ student.id }}">{{ student.last_name }} {{ student.first_name }} ({{ student.student_id }})</option>
                                           {% endfor %}
                                        </select>
                                        {% if selected_class %}

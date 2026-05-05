@@ -1,0 +1,65 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+
+         <div class="page-wrapper">
+            <div class="content container-fluid">
+               <div class="page-header">
+                  <div class="row align-items-center">
+                     <div class="col">
+                        <h3 class="page-title">Nhập giáo viên từ Excel</h3>
+                        <ul class="breadcrumb">
+                           <li class="breadcrumb-item"><a href="{% url 'teacher_list' %}">Giáo viên</a></li>
+                           <li class="breadcrumb-item active">Nhập Excel</li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-sm-12">
+                     <div class="card">
+                        <div class="card-body">
+                           <form method="POST" enctype="multipart/form-data">
+                              {% csrf_token %}
+                              <div class="row">
+                                 <div class="col-12 mb-3">
+                                    <p>Tải lên file Excel để tạo nhiều giáo viên cùng lúc.</p>
+                                    <p>Các tiêu đề cột mong đợi: <strong>teacher_id, last_name, first_name, username, email, phone_number, address, specialization, qualification, joining_date</strong></p>
+                                    <p>Định dạng ngày: <strong>dd/mm/YYYY</strong>, <strong>YYYY-mm-dd</strong>, <strong>dd-mm-YYYY</strong></p>
+                                    <p><strong>Lưu ý:</strong> Mật khẩu mặc định cho tất cả giáo viên là "123456". Giáo viên có thể đổi mật khẩu sau khi đăng nhập.</p>
+                                 </div>
+                                 <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                       <label>File Excel</label>
+                                       <input type="file" class="form-control" name="excel_file" accept=".xlsx,.xls" required>
+                                    </div>
+                                 </div>
+                                 <div class="col-12 mt-3">
+                                    <a href="{% url 'export_teachers_template' %}" class="btn btn-outline-info mr-2">
+                                       <i class="fas fa-download"></i>
+                                       Xuất mẫu
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">Nhập giáo viên</button>
+                                    <a href="{% url 'teacher_list' %}" class="btn btn-secondary">Hủy</a>
+                                 </div>
+                              </div>
+                           </form>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+            <footer>
+               <p>Copyright © thaodeptrai</p>
+            </footer>
+         </div>
+      </div>
+      <script src="{%static 'assets/js/jquery-3.6.0.min.js' %}"></script>
+      <script src="{%static 'assets/js/popper.min.js' %}"></script>
+      <script src="{%static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+      <script src="{%static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+      <script src="{%static 'assets/js/script.js' %}"></script>
+   </body>
+</html>
+{% endblock %}

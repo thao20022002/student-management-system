@@ -1,0 +1,60 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% block body %}
+
+         <div class="page-wrapper">
+            <div class="content container-fluid">
+               <div class="page-header">
+                  <div class="row align-items-center">
+                     <div class="col">
+                        <h3 class="page-title">Nhập học sinh từ Excel</h3>
+                        <ul class="breadcrumb">
+                           <li class="breadcrumb-item"><a href="{% url 'student_list' %}">Học sinh</a></li>
+                           <li class="breadcrumb-item active">Nhập Excel</li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+               <div class="row">
+                  <div class="col-sm-12">
+                     <div class="card">
+                        <div class="card-body">
+                           <form method="POST" enctype="multipart/form-data">
+                              {% csrf_token %}
+                              <div class="row">
+                                 <div class="col-12 mb-3">
+                                    <p>Tải lên file Excel để tạo nhiều học sinh cùng lúc.</p>
+                                    <p>Các tiêu đề cột mong đợi: <strong>student_id, last_name, first_name, gender, date_of_birth, class, religion, joining_date, mobile_number, admission_number, section, father_name, father_occupation, father_mobile, father_email, mother_name, mother_occupation, mother_mobile, mother_email, present_address, permanent_address</strong></p>
+                                    <p>Định dạng ngày: <strong>dd/mm/YYYY</strong>, <strong>YYYY-mm-dd</strong>, <strong>dd-mm-YYYY</strong></p>
+                                 </div>
+                                 <div class="col-12 col-sm-6">
+                                    <div class="form-group">
+                                       <label>File Excel</label>
+                                       <input type="file" class="form-control" name="excel_file" accept=".xlsx,.xls" required>
+                                    </div>
+                                 </div>
+                                 <div class="col-12 mt-3">
+                                    <button type="submit" class="btn btn-primary">Nhập học sinh</button>
+                                    <a href="{% url 'student_list' %}" class="btn btn-secondary">Hủy</a>
+                                 </div>
+                              </div>
+                           </form>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+            <footer>
+               <p>Copyright © thaodeptrai</p>
+            </footer>
+         </div>
+      </div>
+      <script src="{%static 'assets/js/jquery-3.6.0.min.js' %}"></script>
+      <script src="{%static 'assets/js/popper.min.js' %}"></script>
+      <script src="{%static 'assets/plugins/bootstrap/js/bootstrap.min.js' %}"></script>
+      <script src="{%static 'assets/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+      <script src="{%static 'assets/js/script.js' %}"></script>
+   </body>
+</html>
+{% endblock %}

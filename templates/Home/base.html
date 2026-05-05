@@ -1,6 +1,6 @@
 {% load static %} {% load i18n %}
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="utf-8" />
@@ -183,6 +183,26 @@
                   {% endif %}
                 </ul>
               </li>
+              {% if user.is_admin %}
+              <li class="submenu">
+                <a href="#"
+                  ><i class="fas fa-users"></i>
+                  <span> Tuyển sinh lớp 10</span>
+                  <span class="menu-arrow"></span
+                ></a>
+                <ul>
+                  <li>
+                    <a href="{% url 'import_admission_candidates' %}">Import thí sinh</a>
+                  </li>
+                  <li>
+                    <a href="{% url 'admission_scores' %}">Tra cứu điểm thi</a>
+                  </li>
+                  <li>
+                    <a href="{% url 'assign_admission_classes' %}">Phân chia lớp</a>
+                  </li>
+                </ul>
+              </li>
+              {% endif %}
               {% endif %} {% if user.is_admin or user.is_teacher %}
               <li class="submenu">
                 <a href="#"
@@ -294,6 +314,19 @@
                   <span>{% trans "Reports" %}</span></a
                 >
               </li>
+              {% endif %} {% if user.is_admin or user.is_teacher %}
+              <li class="submenu">
+                <a href="#"
+                  ><i class="fas fa-calendar-alt"></i>
+                  <span>Thời khóa biểu</span>
+                  <span class="menu-arrow"></span
+                ></a>
+                <ul>
+                  <li>
+                    <a href="{% url 'timetable_list' %}">Danh sách thời khóa biểu</a>
+                  </li>
+                </ul>
+              </li>
               {% endif %}
               <li class="submenu">
                 <a href="#"
@@ -302,10 +335,6 @@
                   <span class="menu-arrow"></span
                 ></a>
                 <ul>
-                  <li><a href="{% url 'login' %}">{% trans "Login" %}</a></li>
-                  <li>
-                    <a href="{% url 'signup' %}">{% trans "Register" %}</a>
-                  </li>
                   <li>
                     <a href="{% url 'forgot-password' %}"
                       >{% trans "Forgot Password" %}</a

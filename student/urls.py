@@ -6,6 +6,12 @@ urlpatterns = [
 
     path("", views.student_list, name='student_list'),
     path("add/", views.add_student, name="add_student"),
+    path('import-excel/', views.import_students_excel, name='import_students_excel'),
+    path('admissions/import/', views.import_admission_candidates, name='import_admission_candidates'),
+    path('admissions/export-template/', views.export_admission_template, name='export_admission_template'),
+    path('admissions/export-report/', views.export_admission_scores, name='export_admission_scores'),
+    path('admissions/assign-classes/', views.assign_admission_classes, name='assign_admission_classes'),
+    path('admissions/scores/', views.admission_scores, name='admission_scores'),
     path('view/<int:pk>/', views.view_student, name='view_student'),
     path('edit/<int:pk>/', views.edit_student, name='edit_student'),
     path('delete/<int:pk>/', views.delete_student, name='delete_student'),
@@ -41,6 +47,13 @@ urlpatterns = [
     
     path('teachers/', views.teacher_list, name='teacher_list'),
     path('teachers/add/', views.add_teacher, name='add_teacher'),
+    path('teachers/import-excel/', views.import_teachers_excel, name='import_teachers_excel'),
+    path('teachers/export-template/', views.export_teachers_template, name='export_teachers_template'),
+    path('teachers/export-excel/', views.export_teachers_excel, name='export_teachers_excel'),
     path('teachers/edit/<int:pk>/', views.edit_teacher, name='edit_teacher'),
     path('teachers/delete/<int:pk>/', views.delete_teacher, name='delete_teacher'),
+    
+    path('dashboard/', views.student_dashboard, name='student_dashboard'),
+    
+    path('timetable/', views.timetable_list, name='timetable_list'),
 ]

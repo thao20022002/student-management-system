@@ -15,6 +15,19 @@
                         </ul>
                      </div>
                      <div class="col-auto text-right float-right ml-auto">
+                        <a href="{% url 'export_teachers_excel' %}{% if status_filter %}?status={{ status_filter }}{% endif %}"
+                           class="btn btn-outline-primary mr-2">
+                           <i class="fas fa-file-excel"></i>
+                           {% trans "Xuất danh sách" %}
+                        </a>
+                        <a href="{% url 'export_teachers_template' %}" class="btn btn-outline-info mr-2">
+                           <i class="fas fa-download"></i>
+                           {% trans "Xuất mẫu" %}
+                        </a>
+                        <a href="{% url 'import_teachers_excel' %}" class="btn btn-outline-success mr-2">
+                           <i class="fas fa-file-upload"></i>
+                           {% trans "Import Excel" %}
+                        </a>
                         <a href="{% url 'add_teacher' %}" class="btn btn-primary"><i class="fas fa-plus"></i> {% trans "Add Teacher" %}</a>
                      </div>
                   </div>
@@ -28,12 +41,12 @@
                                  <thead>
                                     <tr>
                                        <th>STT</th>
-                                       <th>{% trans "Teacher ID" %}</th>
+                                       <th>{% trans "Mã giáo viên" %}</th>
                                        <th>{% trans "Họ và tên" %}</th>
                                        <th>{% trans "Email" %}</th>
-                                       <th>{% trans "Phone" %}</th>
-                                       <th>{% trans "Specialization" %}</th>
-                                       <th>{% trans "Status" %}</th>
+                                       <th>{% trans "Số điện thoại" %}</th>
+                                       <th>{% trans "Chuyên môn" %}</th>
+                                       <th>{% trans "Trạng thái" %}</th>
                                        <th class="text-right">{% trans "Action" %}</th>
                                     </tr>
                                  </thead>

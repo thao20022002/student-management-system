@@ -1,16 +1,19 @@
 from django.http import HttpResponseForbidden, JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
-from .models import Parent, Student, Class, Subject, Grade, Attendance, Teacher
+from .models import Parent, Student, Class, Subject, Grade, Attendance, Teacher, AdmissionCandidate, Schedule
+import os
 from django.contrib import messages
+from django.db import transaction, IntegrityError
 from django.db.models import Q, Avg, Count
 from django.utils import timezone
-from datetime import datetime, timedelta
-from .decorators import admin_required, teacher_required, admin_or_teacher_required
+from datetime import datetime, timedelta, date
+from decimal import Decimal, InvalidOperation
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from .decorators import admin_required, teacher_required, admin_or_teacher_required, student_required
 from django.contrib.auth.decorators import login_required
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill
-from openpyxl.utils import get_column_letter
+from django.core.paginator import Paginator
 
 
 @admin_required
@@ -76,7 +79,7 @@ def add_student(request):
             parent = parent
         )
         from school.models import Notification
-        Notification.objects.create(user=request.user, message=f"Đã thêm học sinh: {student.first_name} {student.last_name}")
+        Notification.objects.create(user=request.user, message=f"Đã thêm học sinh: {student.last_name} {student.first_name}")
         messages.success(request, "Đã thêm học sinh thành công!")
         return redirect('student_list')
 
@@ -84,169 +87,989 @@ def add_student(request):
     return render(request,"students/add-student.html", {'classes': classes})
 
 
+def _normalize_header(name):
+    return str(name).strip().lower().replace(' ', '_').replace('-', '_') if name is not None else ''
+
+
+def _parse_date(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    text = str(value).strip()
+    if not text:
+        return None
+    for fmt in ('%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%m/%d/%Y', '%Y/%m/%d'):
+        try:
+            return datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _normalize_gender(value):
+    if value is None:
+        return ''
+    text = str(value).strip().lower()
+    if text in ('male', 'nam'):
+        return 'Male'
+    if text in ('female', 'nữ', 'nu'):
+        return 'Female'
+    if text in ('others', 'other', 'khác', 'khac'):
+        return 'Others'
+    return ''
+
+
+def _parse_score(value):
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    text = text.replace(',', '.')
+    try:
+        score = Decimal(text)
+    except (InvalidOperation, ValueError):
+        return None
+    if score < 0:
+        return None
+    return score.quantize(Decimal('0.01'))
+
+
+def _resolve_class(value):
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if text.isdigit():
+        try:
+            return Class.objects.get(pk=int(text))
+        except Class.DoesNotExist:
+            pass
+    lookup = Class.objects.filter(class_name__iexact=text)
+    if lookup.exists():
+        return lookup.first()
+    lookup = Class.objects.filter(class_code__iexact=text)
+    if lookup.exists():
+        return lookup.first()
+    return None
+
+
+@admin_required
+def import_students_excel(request):
+    classes = Class.objects.all()
+    if request.method == 'POST':
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            messages.error(request, 'Vui lòng chọn file Excel để nhập.')
+            return redirect('import_students_excel')
+
+        try:
+            workbook = load_workbook(excel_file, data_only=True)
+        except Exception:
+            messages.error(request, 'File Excel không hợp lệ hoặc không thể đọc được.')
+            return redirect('import_students_excel')
+
+        sheet = workbook.active
+        rows = list(sheet.iter_rows(values_only=True))
+        if len(rows) < 2:
+            messages.error(request, 'File Excel phải có ít nhất 1 dòng dữ liệu.')
+            return redirect('import_students_excel')
+
+        header_row = [_normalize_header(cell) for cell in rows[0]]
+        required_columns = [
+            'student_id', 'last_name', 'first_name', 'gender', 'date_of_birth', 'class',
+            'joining_date', 'mobile_number', 'admission_number', 'father_name', 'father_mobile',
+            'father_email', 'mother_name', 'mother_mobile', 'mother_email', 'present_address',
+            'permanent_address'
+        ]
+        missing = [col for col in required_columns if col not in header_row]
+        if missing:
+            messages.error(request, 'File Excel thiếu cột: ' + ', '.join(missing))
+            return redirect('import_students_excel')
+        
+        # Kiểm tra thứ tự cột: last_name phải đứng trước first_name
+        last_name_idx = header_row.index('last_name')
+        first_name_idx = header_row.index('first_name')
+        if last_name_idx > first_name_idx:
+            messages.error(request, 'Thứ tự cột không đúng. Cột "last_name" (Họ) phải đứng trước cột "first_name" (Tên). '
+                          'Thứ tự đúng: student_id, last_name, first_name, gender, date_of_birth, class, religion, joining_date, '
+                          'mobile_number, admission_number, section, father_name, father_occupation, father_mobile, father_email, '
+                          'mother_name, mother_occupation, mother_mobile, mother_email, present_address, permanent_address')
+            return redirect('import_students_excel')
+
+        header_index = {name: idx for idx, name in enumerate(header_row)}
+        created = 0
+        skipped = 0
+        errors = []
+
+        for row_number, row in enumerate(rows[1:], start=2):
+            if not any(row):
+                continue
+            student_id = row[header_index['student_id']]
+            first_name = row[header_index['first_name']]
+            last_name = row[header_index['last_name']]
+            gender = _normalize_gender(row[header_index['gender']])
+            date_of_birth = _parse_date(row[header_index['date_of_birth']])
+            class_value = row[header_index['class']]
+            religion = row[header_index['religion']] if 'religion' in header_index else ''
+            joining_date = _parse_date(row[header_index['joining_date']])
+            mobile_number = row[header_index['mobile_number']]
+            admission_number = row[header_index['admission_number']]
+            section = row[header_index['section']] if 'section' in header_index else ''
+            father_name = row[header_index['father_name']]
+            father_occupation = row[header_index['father_occupation']] if 'father_occupation' in header_index else ''
+            father_mobile = row[header_index['father_mobile']]
+            father_email = row[header_index['father_email']]
+            mother_name = row[header_index['mother_name']]
+            mother_occupation = row[header_index['mother_occupation']] if 'mother_occupation' in header_index else ''
+            mother_mobile = row[header_index['mother_mobile']]
+            mother_email = row[header_index['mother_email']]
+            present_address = row[header_index['present_address']]
+            permanent_address = row[header_index['permanent_address']]
+
+            missing_fields = []
+            if not student_id:
+                missing_fields.append('student_id')
+            if not first_name:
+                missing_fields.append('first_name')
+            if not last_name:
+                missing_fields.append('last_name')
+            if not gender:
+                missing_fields.append('gender')
+            if not date_of_birth:
+                missing_fields.append('date_of_birth')
+            if not joining_date:
+                missing_fields.append('joining_date')
+            if not mobile_number:
+                missing_fields.append('mobile_number')
+            if not admission_number:
+                missing_fields.append('admission_number')
+            if not father_name:
+                missing_fields.append('father_name')
+            if not father_mobile:
+                missing_fields.append('father_mobile')
+            if not father_email:
+                missing_fields.append('father_email')
+            if not mother_name:
+                missing_fields.append('mother_name')
+            if not mother_mobile:
+                missing_fields.append('mother_mobile')
+            if not mother_email:
+                missing_fields.append('mother_email')
+            if not present_address:
+                missing_fields.append('present_address')
+            if not permanent_address:
+                missing_fields.append('permanent_address')
+
+            if missing_fields:
+                skipped += 1
+                errors.append(f"Dòng {row_number}: thiếu {', '.join(missing_fields)}")
+                continue
+
+            class_obj = _resolve_class(class_value)
+            if class_value and class_obj is None:
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Lớp '{class_value}' không tồn tại")
+                continue
+
+            if Student.objects.filter(student_id=student_id).exists():
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Mã học sinh '{student_id}' đã tồn tại")
+                continue
+            if Student.objects.filter(admission_number=admission_number).exists():
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Số nhập học '{admission_number}' đã tồn tại")
+                continue
+
+            try:
+                with transaction.atomic():
+                    parent = Parent.objects.create(
+                        father_name=str(father_name).strip(),
+                        father_occupation=str(father_occupation).strip() if father_occupation else '',
+                        father_mobile=str(father_mobile).strip(),
+                        father_email=str(father_email).strip(),
+                        mother_name=str(mother_name).strip(),
+                        mother_occupation=str(mother_occupation).strip() if mother_occupation else '',
+                        mother_mobile=str(mother_mobile).strip(),
+                        mother_email=str(mother_email).strip(),
+                        present_address=str(present_address).strip(),
+                        permanent_address=str(permanent_address).strip(),
+                    )
+                    Student.objects.create(
+                        first_name=str(first_name).strip(),
+                        last_name=str(last_name).strip(),
+                        student_id=str(student_id).strip(),
+                        gender=gender,
+                        date_of_birth=date_of_birth,
+                        student_class=class_obj,
+                        religion=str(religion).strip() if religion else '',
+                        joining_date=joining_date,
+                        mobile_number=str(mobile_number).strip(),
+                        admission_number=str(admission_number).strip(),
+                        section=str(section).strip() if section else '',
+                        parent=parent,
+                    )
+                created += 1
+            except IntegrityError as exc:
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Lỗi dữ liệu hoặc giá trị trùng lặp ({exc})")
+            except Exception as exc:
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Lỗi khi tạo học sinh ({exc})")
+
+        if created:
+            from school.models import Notification
+            Notification.objects.create(user=request.user, message=f"Đã nhập {created} học sinh từ file Excel")
+
+        if created > 0:
+            messages.success(request, f"Đã nhập thành công {created} học sinh.")
+        if skipped > 0:
+            messages.warning(request, f"Bỏ qua {skipped} dòng. Xem chi tiết mô tả lỗi bên dưới.")
+            for error in errors[:10]:
+                messages.error(request, error)
+            if len(errors) > 10:
+                messages.error(request, f"Còn {len(errors) - 10} lỗi khác.")
+
+        return redirect('student_list')
+
+    return render(request, 'students/import-students.html', {'classes': classes})
+
+
+@admin_required
+def import_teachers_excel(request):
+    if request.method == 'POST':
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            messages.error(request, 'Vui lòng chọn file Excel để nhập.')
+            return redirect('import_teachers_excel')
+
+        try:
+            workbook = load_workbook(excel_file, data_only=True)
+        except Exception:
+            messages.error(request, 'File Excel không hợp lệ hoặc không thể đọc được.')
+            return redirect('import_teachers_excel')
+
+        sheet = workbook.active
+        rows = list(sheet.iter_rows(values_only=True))
+        if len(rows) < 2:
+            messages.error(request, 'File Excel phải có ít nhất 1 dòng dữ liệu.')
+            return redirect('import_teachers_excel')
+
+        header_row = [_normalize_header(cell) for cell in rows[0]]
+        required_columns = [
+            'teacher_id', 'last_name', 'first_name', 'username', 'email'
+        ]
+        missing = [col for col in required_columns if col not in header_row]
+        if missing:
+            messages.error(request, 'File Excel thiếu cột: ' + ', '.join(missing))
+            return redirect('import_teachers_excel')
+        
+        # Kiểm tra thứ tự cột: last_name phải đứng trước first_name
+        last_name_idx = header_row.index('last_name')
+        first_name_idx = header_row.index('first_name')
+        if last_name_idx > first_name_idx:
+            messages.error(request, 'Thứ tự cột không đúng. Cột "last_name" (Họ) phải đứng trước cột "first_name" (Tên). '
+                          'Thứ tự đúng: teacher_id, last_name, first_name, username, email, phone_number, address, specialization, qualification, joining_date')
+            return redirect('import_teachers_excel')
+
+        header_index = {name: idx for idx, name in enumerate(header_row)}
+        created = 0
+        skipped = 0
+        errors = []
+
+        for row_number, row in enumerate(rows[1:], start=2):
+            if not any(row):
+                continue
+            teacher_id = row[header_index['teacher_id']]
+            first_name = row[header_index['first_name']]
+            last_name = row[header_index['last_name']]
+            username = row[header_index['username']]
+            email = row[header_index['email']]
+            phone_number = row[header_index['phone_number']] if 'phone_number' in header_index else ''
+            address = row[header_index['address']] if 'address' in header_index else ''
+            specialization = row[header_index['specialization']] if 'specialization' in header_index else ''
+            qualification = row[header_index['qualification']] if 'qualification' in header_index else ''
+            joining_date = _parse_date(row[header_index['joining_date']]) if 'joining_date' in header_index else None
+
+            missing_fields = []
+            if not teacher_id:
+                missing_fields.append('teacher_id')
+            if not first_name:
+                missing_fields.append('first_name')
+            if not last_name:
+                missing_fields.append('last_name')
+            if not username:
+                missing_fields.append('username')
+            if not email:
+                missing_fields.append('email')
+
+            if missing_fields:
+                skipped += 1
+                errors.append(f"Dòng {row_number}: thiếu {', '.join(missing_fields)}")
+                continue
+
+            if Teacher.objects.filter(teacher_id=teacher_id).exists():
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Mã giáo viên '{teacher_id}' đã tồn tại")
+                continue
+            
+            from home_auth.models import CustomUser
+            if CustomUser.objects.filter(username=username).exists():
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Tên đăng nhập '{username}' đã tồn tại")
+                continue
+            if CustomUser.objects.filter(email=email).exists():
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Email '{email}' đã tồn tại")
+                continue
+
+            try:
+                with transaction.atomic():
+                    user = CustomUser.objects.create_user(
+                        username=str(username).strip(),
+                        email=str(email).strip(),
+                        first_name=str(first_name).strip(),
+                        last_name=str(last_name).strip(),
+                        password='123456',  # Mật khẩu mặc định
+                        is_teacher=True
+                    )
+                    Teacher.objects.create(
+                        teacher_id=str(teacher_id).strip(),
+                        user=user,
+                        phone_number=str(phone_number).strip() if phone_number else '',
+                        address=str(address).strip() if address else '',
+                        specialization=str(specialization).strip() if specialization else '',
+                        qualification=str(qualification).strip() if qualification else '',
+                        joining_date=joining_date,
+                    )
+                created += 1
+            except IntegrityError as exc:
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Lỗi dữ liệu hoặc giá trị trùng lặp ({exc})")
+            except Exception as exc:
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Lỗi khi tạo giáo viên ({exc})")
+
+        if created:
+            from school.models import Notification
+            Notification.objects.create(user=request.user, message=f"Đã nhập {created} giáo viên từ file Excel")
+
+        if created > 0:
+            messages.success(request, f"Đã nhập thành công {created} giáo viên.")
+        if skipped > 0:
+            messages.warning(request, f"Bỏ qua {skipped} dòng. Xem chi tiết mô tả lỗi bên dưới.")
+            for error in errors[:10]:
+                messages.error(request, error)
+            if len(errors) > 10:
+                messages.error(request, f"Còn {len(errors) - 10} lỗi khác.")
+
+        return redirect('teacher_list')
+
+    return render(request, 'students/import-teachers.html')
+
+
+@admin_required
+def export_teachers_template(request):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Mẫu giáo viên'
+
+    headers = ['teacher_id', 'last_name', 'first_name', 'username', 'email', 'phone_number', 'address', 'specialization', 'qualification', 'joining_date']
+    header_fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+    header_font = Font(bold=True, color='FFFFFF')
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center')
+
+    sample_row = ['GV001', 'Nguyễn', 'Văn A', 'nguyenvana', 'nguyenvana@example.com', '0123456789', 'Hà Nội', 'Toán học', 'Thạc sĩ', datetime.now().strftime('%d/%m/%Y')]
+    for col_num, value in enumerate(sample_row, 1):
+        ws.cell(row=2, column=col_num, value=value)
+
+    download_dir = r'C:\Users\Admin\Downloads'
+    os.makedirs(download_dir, exist_ok=True)
+    filename = 'Mau_Giao_Vien.xlsx'
+    file_path = os.path.join(download_dir, filename)
+    wb.save(file_path)
+
+    messages.success(request, f'Đã xuất file mẫu vào {file_path}')
+    return redirect('import_teachers_excel')
+
+
+@admin_or_teacher_required
+def export_teachers_excel(request):
+    # Lấy danh sách giáo viên
+    teachers = Teacher.objects.select_related('user').order_by('teacher_id')
+    
+    # Lọc theo trạng thái nếu có
+    status = request.GET.get('status')
+    if status == 'active':
+        teachers = teachers.filter(is_active=True)
+    elif status == 'inactive':
+        teachers = teachers.filter(is_active=False)
+
+    # Khởi tạo Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Danh sách giáo viên'
+
+    headers = ['STT', 'Mã giáo viên', 'Họ', 'Tên', 'Tên đăng nhập', 'Email', 'Số điện thoại', 'Địa chỉ', 'Chuyên môn', 'Trình độ', 'Ngày vào làm', 'Trạng thái']
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+
+    # Ghi Header
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center')
+
+    # Ghi dữ liệu giáo viên
+    for row_num, teacher in enumerate(teachers, 2):
+        ws.cell(row=row_num, column=1, value=row_num - 1)
+        ws.cell(row=row_num, column=2, value=teacher.teacher_id)
+        ws.cell(row=row_num, column=3, value=teacher.user.last_name)
+        ws.cell(row=row_num, column=4, value=teacher.user.first_name)
+        ws.cell(row=row_num, column=5, value=teacher.user.username)
+        ws.cell(row=row_num, column=6, value=teacher.user.email)
+        ws.cell(row=row_num, column=7, value=teacher.phone_number or '')
+        ws.cell(row=row_num, column=8, value=teacher.address or '')
+        ws.cell(row=row_num, column=9, value=teacher.specialization or '')
+        ws.cell(row=row_num, column=10, value=teacher.qualification or '')
+        ws.cell(row=row_num, column=11, value=teacher.joining_date.strftime('%d/%m/%Y') if teacher.joining_date else '')
+        ws.cell(row=row_num, column=12, value='Đang làm việc' if teacher.is_active else 'Nghỉ việc')
+
+    # Phản hồi tải file
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"Danh_sach_Giao_Vien_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
+@admin_required
+def import_admission_candidates(request):
+    if request.method == 'POST':
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            messages.error(request, 'Vui lòng chọn file Excel để nhập.')
+            return redirect('import_admission_candidates')
+
+        try:
+            workbook = load_workbook(excel_file, data_only=True)
+        except Exception:
+            messages.error(request, 'File Excel không hợp lệ hoặc không thể đọc được.')
+            return redirect('import_admission_candidates')
+
+        sheet = workbook.active
+        rows = list(sheet.iter_rows(values_only=True))
+        if len(rows) < 2:
+            messages.error(request, 'File Excel phải có ít nhất 1 dòng dữ liệu.')
+            return redirect('import_admission_candidates')
+
+        header_row = [_normalize_header(cell) for cell in rows[0]]
+        required_columns = ['exam_number', 'full_name', 'date_of_birth', 'previous_school']
+        missing = [col for col in required_columns if col not in header_row]
+        if missing:
+            messages.error(request, 'File Excel thiếu cột: ' + ', '.join(missing))
+            return redirect('import_admission_candidates')
+
+        header_index = {name: idx for idx, name in enumerate(header_row)}
+        created = 0
+        updated = 0
+        skipped = 0
+        errors = []
+
+        for row_number, row in enumerate(rows[1:], start=2):
+            if not any(cell is not None and str(cell).strip() for cell in row):
+                continue
+
+            exam_number = str(row[header_index['exam_number']]).strip() if header_index['exam_number'] < len(row) and row[header_index['exam_number']] is not None else ''
+            full_name = str(row[header_index['full_name']]).strip() if header_index['full_name'] < len(row) and row[header_index['full_name']] is not None else ''
+            date_of_birth = _parse_date(row[header_index['date_of_birth']]) if header_index['date_of_birth'] < len(row) else None
+            previous_school = str(row[header_index['previous_school']]).strip() if header_index['previous_school'] < len(row) and row[header_index['previous_school']] is not None else ''
+
+            if not exam_number or not full_name or not date_of_birth or not previous_school:
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Thiếu dữ liệu bắt buộc.")
+                continue
+
+            try:
+                candidate, created_flag = AdmissionCandidate.objects.update_or_create(
+                    exam_number=exam_number,
+                    defaults={
+                        'full_name': full_name,
+                        'date_of_birth': date_of_birth,
+                        'previous_school': previous_school,
+                    }
+                )
+                if created_flag:
+                    created += 1
+                else:
+                    updated += 1
+            except Exception as exc:
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Lỗi khi lưu thí sinh ({exc}).")
+
+        if created > 0 or updated > 0:
+            messages.success(request, f"Đã xử lý {created} thí sinh mới và cập nhật {updated} thí sinh.")
+        if skipped > 0:
+            messages.warning(request, f"Bỏ qua {skipped} dòng không hợp lệ.")
+            for error in errors[:10]:
+                messages.error(request, error)
+            if len(errors) > 10:
+                messages.error(request, f"Còn {len(errors) - 10} lỗi khác.")
+
+        return redirect('import_admission_candidates')
+
+    return render(request, 'students/import-admissions.html')
+
+
+@admin_required
+def export_admission_template(request):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Mẫu tuyển sinh'
+
+    headers = ['exam_number', 'full_name', 'date_of_birth', 'previous_school']
+    header_fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+    header_font = Font(bold=True, color='FFFFFF')
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center')
+
+    sample_row = ['TS001', 'Nguyễn Văn A', datetime.now().strftime('%d/%m/%Y'), 'THCS Nguyễn Trãi']
+    for col_num, value in enumerate(sample_row, 1):
+        ws.cell(row=2, column=col_num, value=value)
+
+    download_dir = r'C:\Users\Admin\Downloads'
+    os.makedirs(download_dir, exist_ok=True)
+    filename = 'Mau_Tuyen_Sinh_Lop_10.xlsx'
+    file_path = os.path.join(download_dir, filename)
+    wb.save(file_path)
+
+    messages.success(request, f'Đã xuất file mẫu vào {file_path}')
+    return redirect('import_admission_candidates')
+
+
+@admin_required
+def export_admission_scores(request):
+    candidates = AdmissionCandidate.objects.all().order_by('exam_number')
+    wb = Workbook()
+    sheet = wb.active
+    sheet.title = 'Diem tuyen sinh'
+
+    headers = [
+        'exam_number', 'full_name', 'date_of_birth', 'previous_school',
+        'math_score', 'literature_score', 'english_score', 'total_score'
+    ]
+    for col_num, header in enumerate(headers, 1):
+        cell = sheet.cell(row=1, column=col_num, value=header)
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(horizontal='center')
+
+    for row_num, candidate in enumerate(candidates, start=2):
+        math_score = candidate.math_score
+        literature_score = candidate.literature_score
+        english_score = candidate.english_score
+        total_score = None
+        if any(value is not None for value in [math_score, literature_score, english_score]):
+            total_score = sum((value or Decimal('0')) for value in [math_score, literature_score, english_score])
+
+        values = [
+            candidate.exam_number,
+            candidate.full_name,
+            candidate.date_of_birth.strftime('%d/%m/%Y') if candidate.date_of_birth else '',
+            candidate.previous_school,
+            math_score,
+            literature_score,
+            english_score,
+            total_score,
+        ]
+        for col_num, value in enumerate(values, 1):
+            sheet.cell(row=row_num, column=col_num).value = value
+
+    for col_num in range(1, len(headers) + 1):
+        column_letter = get_column_letter(col_num)
+        sheet.column_dimensions[column_letter].width = 20
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="Danh_sach_diem_tuyen_sinh.xlsx"'
+    wb.save(response)
+    return response
+
+
+@admin_required
+def assign_admission_classes(request):
+    class_names = ['10A1', '10A2', '10A3']
+    class_objects = []
+    for class_name in class_names:
+        class_obj, created = Class.objects.get_or_create(
+            class_name=class_name,
+            defaults={
+                'class_code': class_name,
+                'grade_level': '10',
+                'capacity': 40,
+            }
+        )
+        if class_obj.capacity != 40:
+            class_obj.capacity = 40
+            class_obj.save()
+        class_objects.append(class_obj)
+
+    candidates = AdmissionCandidate.objects.filter(
+        math_score__isnull=False,
+        literature_score__isnull=False,
+        english_score__isnull=False,
+    )
+
+    ranked_candidates = sorted(
+        candidates,
+        key=lambda c: (
+            -(c.total_score or Decimal('0')),
+            -(c.math_score or Decimal('0')),
+            -(c.literature_score or Decimal('0')),
+            -(c.english_score or Decimal('0')),
+            c.exam_number,
+        )
+    )
+
+    total_required = 40 * len(class_objects)
+    cutoff_candidate = None
+    assigned_summary = None
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'assign':
+            if len(ranked_candidates) < total_required:
+                messages.error(request, f"Cần ít nhất {total_required} thí sinh có đủ điểm để phân chia 3 lớp.")
+            else:
+                AdmissionCandidate.objects.update(assigned_class=None)
+                assigned = []
+                for index, candidate in enumerate(ranked_candidates[:total_required]):
+                    assigned_class = class_objects[index // 40]
+                    candidate.assigned_class = assigned_class
+                    candidate.save()
+                    assigned.append(candidate)
+
+                cutoff_candidate = assigned[-1]
+                messages.success(request, f"Phân chia xong {total_required} thí sinh vào 3 lớp. Điểm chuẩn: {cutoff_candidate.total_score} (SBD: {cutoff_candidate.exam_number}).")
+                return redirect('assign_admission_classes')
+        elif action == 'sync':
+            if not AdmissionCandidate.objects.filter(assigned_class__isnull=False).exists():
+                messages.error(request, "Chưa có thí sinh nào được phân chia lớp để đồng bộ.")
+            else:
+                created_count, skipped_count, errors = _sync_admission_candidates(request.user)
+                if created_count > 0:
+                    sync_message = f"Đã đồng bộ {created_count} học sinh vào hệ thống."
+                    if skipped_count > 0:
+                        sync_message += f" {skipped_count} học sinh đã tồn tại và được bỏ qua."
+                    messages.success(request, sync_message)
+                elif skipped_count > 0:
+                    messages.info(request, f"Tất cả {skipped_count} học sinh đã đồng bộ trước đó.")
+                else:
+                    messages.warning(request, "Không có học sinh mới nào được đồng bộ.")
+
+                for error in errors:
+                    messages.error(request, error)
+                return redirect('assign_admission_classes')
+
+    results_by_class = {}
+    for class_obj in class_objects:
+        results_by_class[class_obj.class_name] = list(
+            AdmissionCandidate.objects.filter(assigned_class=class_obj).order_by(
+                '-math_score', '-literature_score', '-english_score', 'exam_number'
+            )
+        )
+
+    # Prepare class data for template
+    class_data = []
+    for class_obj in class_objects:
+        class_data.append({
+            'class_obj': class_obj,
+            'students': results_by_class[class_obj.class_name],
+            'count': len(results_by_class[class_obj.class_name])
+        })
+
+    if len(ranked_candidates) >= total_required:
+        cutoff_candidate = ranked_candidates[total_required - 1]
+
+    assigned_total = sum(data['count'] for data in class_data)
+
+    return render(request, 'students/admission-assign-classes.html', {
+        'class_data': class_data,
+        'cutoff_candidate': cutoff_candidate,
+        'ranked_count': len(ranked_candidates),
+        'total_required': total_required,
+        'assigned_total': assigned_total,
+    })
+
+
+def _sync_admission_candidates(user):
+    assigned_candidates = AdmissionCandidate.objects.filter(assigned_class__isnull=False).select_related('assigned_class')
+    created_count = 0
+    skipped_count = 0
+    errors = []
+
+    for candidate in assigned_candidates:
+        try:
+            with transaction.atomic():
+                if Student.objects.filter(admission_number=candidate.exam_number).exists():
+                    skipped_count += 1
+                    continue
+
+                parent = Parent.objects.create(
+                    father_name="Chưa cập nhật",
+                    father_occupation="",
+                    father_mobile="",
+                    father_email="",
+                    mother_name="Chưa cập nhật",
+                    mother_occupation="",
+                    mother_mobile="",
+                    mother_email="",
+                    present_address="Chưa cập nhật",
+                    permanent_address="Chưa cập nhật",
+                )
+
+                Student.objects.create(
+                    first_name=candidate.full_name.split()[-1] if candidate.full_name.split() else "Chưa cập nhật",
+                    last_name=" ".join(candidate.full_name.split()[:-1]) if len(candidate.full_name.split()) > 1 else "",
+                    student_id=candidate.exam_number,
+                    gender='Male',
+                    date_of_birth=candidate.date_of_birth,
+                    student_class=candidate.assigned_class,
+                    religion="",
+                    joining_date=timezone.now().date(),
+                    mobile_number="",
+                    admission_number=candidate.exam_number,
+                    section=candidate.assigned_class.grade_level if candidate.assigned_class else "",
+                    parent=parent,
+                    is_active=True,
+                )
+                created_count += 1
+        except Exception as e:
+            errors.append(f"Lỗi đồng bộ thí sinh {candidate.exam_number}: {str(e)}")
+
+    if created_count > 0:
+        from school.models import Notification
+        Notification.objects.create(
+            user=user,
+            message=f"Đã đồng bộ {created_count} học sinh từ danh sách tuyển sinh"
+        )
+    return created_count, skipped_count, errors
+
+
+@admin_required
+def admission_scores(request):
+    exam_number = request.GET.get('exam_number', '').strip()
+    candidate = None
+
+    # Xử lý import điểm hàng loạt
+    if request.method == 'POST' and request.POST.get('bulk_import'):
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            messages.error(request, 'Vui lòng chọn file Excel để nhập điểm.')
+            return redirect('admission_scores')
+
+        try:
+            workbook = load_workbook(excel_file, data_only=True)
+        except Exception:
+            messages.error(request, 'File Excel không hợp lệ hoặc không thể đọc được.')
+            return redirect('admission_scores')
+
+        sheet = workbook.active
+        rows = list(sheet.iter_rows(values_only=True))
+        if len(rows) < 2:
+            messages.error(request, 'File Excel phải có ít nhất 1 dòng dữ liệu.')
+            return redirect('admission_scores')
+
+        header_row = [_normalize_header(cell) for cell in rows[0]]
+        required_columns = ['exam_number', 'math_score', 'literature_score', 'english_score']
+        missing = [col for col in required_columns if col not in header_row]
+        if missing:
+            messages.error(request, 'File Excel thiếu cột: ' + ', '.join(missing))
+            return redirect('admission_scores')
+
+        header_index = {name: idx for idx, name in enumerate(header_row)}
+        updated = 0
+        skipped = 0
+        not_found = 0
+        errors = []
+
+        for row_number, row in enumerate(rows[1:], start=2):
+            if not any(cell is not None and str(cell).strip() for cell in row):
+                continue
+
+            exam_number_row = str(row[header_index['exam_number']]).strip() if header_index['exam_number'] < len(row) and row[header_index['exam_number']] is not None else ''
+            math_score = _parse_score(row[header_index['math_score']]) if header_index['math_score'] < len(row) else None
+            literature_score = _parse_score(row[header_index['literature_score']]) if header_index['literature_score'] < len(row) else None
+            english_score = _parse_score(row[header_index['english_score']]) if header_index['english_score'] < len(row) else None
+
+            if not exam_number_row:
+                skipped += 1
+                errors.append(f"Dòng {row_number}: Thiếu số báo danh.")
+                continue
+
+            candidate = AdmissionCandidate.objects.filter(exam_number=exam_number_row).first()
+            if not candidate:
+                not_found += 1
+                errors.append(f"Dòng {row_number}: Không tìm thấy thí sinh với số báo danh {exam_number_row}.")
+                continue
+
+            # Chỉ cập nhật điểm nếu ô đó chưa có dữ liệu
+            updated_fields = []
+            if math_score is not None and candidate.math_score is None:
+                candidate.math_score = math_score
+                updated_fields.append('Toán')
+            if literature_score is not None and candidate.literature_score is None:
+                candidate.literature_score = literature_score
+                updated_fields.append('Văn')
+            if english_score is not None and candidate.english_score is None:
+                candidate.english_score = english_score
+                updated_fields.append('Anh')
+
+            if updated_fields:
+                candidate.save()
+                updated += 1
+            else:
+                skipped += 1
+
+        if updated > 0:
+            messages.success(request, f"Đã cập nhật điểm cho {updated} thí sinh.")
+        if skipped > 0:
+            messages.warning(request, f"Bỏ qua {skipped} dòng (đã có điểm hoặc thiếu dữ liệu).")
+        if not_found > 0:
+            messages.warning(request, f"Không tìm thấy {not_found} thí sinh trong danh sách.")
+        if errors:
+            for error in errors[:10]:
+                messages.error(request, error)
+            if len(errors) > 10:
+                messages.error(request, f"Còn {len(errors) - 10} lỗi khác.")
+
+        return redirect('admission_scores')
+
+    if request.method == 'POST' and not request.POST.get('bulk_import'):
+        return redirect('admission_scores')
+
+    if exam_number:
+        candidate = AdmissionCandidate.objects.filter(exam_number=exam_number).first()
+        if exam_number and not candidate:
+            messages.error(request, f"Không tìm thấy thí sinh với số báo danh {exam_number}.")
+
+    total_score = None
+    if candidate:
+        score_values = [candidate.math_score, candidate.literature_score, candidate.english_score]
+        if any(value is not None for value in score_values):
+            total_score = sum((value or Decimal('0')) for value in score_values)
+
+    return render(request, 'students/admission-scores.html', {
+        'candidate': candidate,
+        'exam_number': exam_number,
+        'total_score': total_score,
+    })
+
 
 @admin_or_teacher_required
 def student_list(request):
+    # Lấy danh sách tất cả các Khối duy nhất để hiển thị trong Dropdown
+    all_grades = Class.objects.values_list('grade_level', flat=True).distinct().order_by('grade_level')
+    selected_grade = request.GET.get('grade') # Lấy khối được chọn từ giao diện
+
     if request.user.is_admin:
         all_classes = Class.objects.all().order_by('grade_level', 'class_name')
         student_list = Student.objects.select_related('parent', 'student_class').filter(is_active=True)
     else:
-        # Giáo viên chỉ xem học sinh trong lớp mà họ là giáo viên chủ nhiệm
         all_classes = Class.objects.filter(class_teacher=request.user).order_by('grade_level', 'class_name')
         student_list = Student.objects.filter(student_class__in=all_classes, is_active=True).select_related('parent', 'student_class')
     
-    selected_class = None
+    # Lọc danh sách theo Khối nếu người dùng chọn
+    if selected_grade:
+        all_classes = all_classes.filter(grade_level=selected_grade)
+        student_list = student_list.filter(student_class__grade_level=selected_grade)
+
+    # Giữ nguyên logic lọc theo Lớp (class_id) hiện tại của bạn...
     class_id = request.GET.get('class')
+    selected_class = None
     if class_id:
         try:
             selected_class = Class.objects.get(id=class_id)
-            if request.user.is_teacher and selected_class.class_teacher != request.user:
-                messages.error(request, "Bạn không có quyền xem học sinh của lớp này!")
-                selected_class = None
-            else:
-                student_list = student_list.filter(student_class=selected_class)
+            student_list = student_list.filter(student_class=selected_class)
         except Class.DoesNotExist:
-            selected_class = None
-    
-    student_list = student_list.order_by('first_name', 'last_name')
-    
-    unread_notification = request.user.notification_set.filter(is_read=False)
+            pass
+
     context = {
-        'student_list': student_list,
+        'student_list': student_list.order_by('first_name', 'last_name'),
         'all_classes': all_classes,
+        'all_grades': all_grades,         # Truyền biến này ra HTML
+        'selected_grade': selected_grade, # Truyền biến này để giữ trạng thái Dropdown
         'selected_class': selected_class,
-        'unread_notification': unread_notification
+        'unread_notification': request.user.notification_set.filter(is_read=False)
     }
     return render(request, "students/students.html", context)
 
-
 @admin_or_teacher_required
 def export_students_excel(request):
+    grade_level = request.GET.get('grade') # Lấy tham số 'grade' từ URL
     
+    # 1. Xác định danh sách các Lớp cần xuất
     if request.user.is_admin:
-        students = Student.objects.select_related('parent', 'student_class').filter(is_active=True)
+        classes_to_export = Class.objects.all()
     else:
-        classes = Class.objects.filter(class_teacher=request.user)
-        students = Student.objects.filter(student_class__in=classes, is_active=True).select_related('parent', 'student_class')
+        classes_to_export = Class.objects.filter(class_teacher=request.user)
+
+    if grade_level:
+        classes_to_export = classes_to_export.filter(grade_level=grade_level)
     
-    class_id = request.GET.get('class')
-    if class_id:
-        try:
-            selected_class = Class.objects.get(id=class_id)
-            if request.user.is_teacher and selected_class.class_teacher != request.user:
-                messages.error(request, "Bạn không có quyền xuất danh sách học sinh của lớp này!")
-                return redirect('student_list')
-            students = students.filter(student_class=selected_class)
-        except Class.DoesNotExist:
-            pass
-    
-    students = students.order_by('first_name', 'last_name')
-    
+    classes_to_export = classes_to_export.order_by('class_name')
+
+    # 2. Khởi tạo Workbook
     wb = Workbook()
-    ws = wb.active
-    ws.title = "Danh sách học sinh"
     
-    headers = [
-        'STT',
-        'Mã học sinh',
-        'Họ',
-        'Tên',
-        'Giới tính',
-        'Ngày sinh',
-        'Lớp',
-        'Số điện thoại',
-        'Ngày nhập học',
-        'Số nhập học',
-        'Khối',
-        'Tên cha',
-        'Nghề nghiệp cha',
-        'SĐT cha',
-        'Email cha',
-        'Tên mẹ',
-        'Nghề nghiệp mẹ',
-        'SĐT mẹ',
-        'Email mẹ',
-        'Địa chỉ hiện tại',
-        'Địa chỉ thường trú',
-        'Tôn giáo',
-        'Trạng thái'
-    ]
-    
+    # Xóa sheet mặc định ban đầu để tạo sheet theo tên lớp
+    default_sheet = wb.active
+    wb.remove(default_sheet)
+
+    headers = ['STT', 'Mã học sinh', 'Họ', 'Tên', 'Giới tính', 'Ngày sinh', 'Lớp', 'Số điện thoại', 'Trạng thái']
     header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-    header_font = Font(bold=True, color="FFFFFF", size=11)
-    
-    for col_num, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_num)
-        cell.value = header
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-    
-    for row_num, student in enumerate(students, 2):
-        ws.cell(row=row_num, column=1, value=row_num - 1)  # STT
-        ws.cell(row=row_num, column=2, value=student.student_id)
-        ws.cell(row=row_num, column=3, value=student.last_name)  # Họ
-        ws.cell(row=row_num, column=4, value=student.first_name)  # Tên
-        ws.cell(row=row_num, column=5, value=student.get_gender_display())
-        ws.cell(row=row_num, column=6, value=student.date_of_birth.strftime('%d/%m/%Y') if student.date_of_birth else '')
-        ws.cell(row=row_num, column=7, value=student.student_class.class_name if student.student_class else '')
-        ws.cell(row=row_num, column=8, value=student.mobile_number)
-        ws.cell(row=row_num, column=9, value=student.joining_date.strftime('%d/%m/%Y') if student.joining_date else '')
-        ws.cell(row=row_num, column=10, value=student.admission_number)
-        ws.cell(row=row_num, column=11, value=student.section)
+    header_font = Font(bold=True, color="FFFFFF")
+
+    # 3. Duyệt qua từng Lớp để tạo Sheet riêng
+    for cls in classes_to_export:
+        ws = wb.create_sheet(title=f"Lớp {cls.class_name}")
         
-        if student.parent:
-            ws.cell(row=row_num, column=12, value=student.parent.father_name)
-            ws.cell(row=row_num, column=13, value=student.parent.father_occupation)
-            ws.cell(row=row_num, column=14, value=student.parent.father_mobile)
-            ws.cell(row=row_num, column=15, value=student.parent.father_email)
-            ws.cell(row=row_num, column=16, value=student.parent.mother_name)
-            ws.cell(row=row_num, column=17, value=student.parent.mother_occupation)
-            ws.cell(row=row_num, column=18, value=student.parent.mother_mobile)
-            ws.cell(row=row_num, column=19, value=student.parent.mother_email)
-            ws.cell(row=row_num, column=20, value=student.parent.present_address)
-            ws.cell(row=row_num, column=21, value=student.parent.permanent_address)
+        # Ghi Header
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num, value=header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center')
+
+        # Lấy học sinh của lớp này
+        students = Student.objects.filter(student_class=cls, is_active=True).order_by('first_name')
         
-        ws.cell(row=row_num, column=22, value=student.religion)
-        ws.cell(row=row_num, column=23, value='Đang học' if student.is_active else 'Đã nghỉ')
-    
-    column_widths = {
-        'A': 6,   
-        'B': 12,  
-        'C': 15, 
-        'D': 15, 
-        'E': 10, 
-        'F': 12, 
-        'G': 10, 
-        'H': 15,  
-        'I': 12, 
-        'J': 12, 
-        'K': 8,  
-        'L': 20, 
-        'M': 20, 
-        'N': 15, 
-        'O': 25,  
-        'P': 20, 
-        'Q': 20,  
-        'R': 15, 
-        'S': 25, 
-        'T': 30,  
-        'U': 30, 
-        'V': 15,  
-        'W': 12, 
-    }
-    
-    for col_letter, width in column_widths.items():
-        ws.column_dimensions[col_letter].width = width
-    
-    ws.row_dimensions[1].height = 30
-    
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    filename = f"Danh_sach_hoc_sinh_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        # Ghi dữ liệu học sinh vào sheet hiện tại
+        for row_num, student in enumerate(students, 2):
+            ws.cell(row=row_num, column=1, value=row_num - 1)
+            ws.cell(row=row_num, column=2, value=student.student_id)
+            ws.cell(row=row_num, column=3, value=student.last_name)
+            ws.cell(row=row_num, column=4, value=student.first_name)
+            ws.cell(row=row_num, column=5, value=student.get_gender_display())
+            ws.cell(row=row_num, column=6, value=student.date_of_birth.strftime('%d/%m/%Y') if student.date_of_birth else '')
+            ws.cell(row=row_num, column=7, value=cls.class_name)
+            ws.cell(row=row_num, column=8, value=student.mobile_number)
+            ws.cell(row=row_num, column=9, value='Đang học')
+
+    # 4. Phản hồi tải file
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"Danh_sach_Khoi_{grade_level if grade_level else 'Tat_ca'}_{datetime.now().strftime('%Y%m%d')}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    
     wb.save(response)
     return response
 
@@ -303,7 +1126,7 @@ def edit_student(request, pk):
         student.student_image = student_image
         student.save()
         from school.models import Notification
-        Notification.objects.create(user=request.user, message=f"Đã cập nhật học sinh: {student.first_name} {student.last_name}")
+        Notification.objects.create(user=request.user, message=f"Đã cập nhật học sinh: {student.last_name} {student.first_name}")
         messages.success(request, "Đã cập nhật học sinh thành công!")
         return redirect("student_list")
     
@@ -332,7 +1155,7 @@ def view_student(request, pk):
 def delete_student(request, pk):
     if request.method == "POST":
         student = get_object_or_404(Student, pk=pk)
-        student_name = f"{student.first_name} {student.last_name}"
+        student_name = f"{student.last_name} {student.first_name}"
         student.delete()
         from school.models import Notification
         Notification.objects.create(user=request.user, message=f"Đã xóa học sinh: {student_name}")
@@ -904,7 +1727,7 @@ def reject_grade(request, pk):
     grade = get_object_or_404(Grade, pk=pk)
     
     if request.method == "POST":
-        student_name = f"{grade.student.first_name} {grade.student.last_name}"
+        student_name = f"{grade.student.last_name} {grade.student.first_name}"
         subject_name = grade.subject.subject_name
         grade.delete()
         
@@ -1263,12 +2086,39 @@ def reports_dashboard(request):
     }
     return render(request, "students/reports-dashboard.html", context)
 
+
 @admin_required
 def teacher_list(request):
-    # Lấy tất cả giáo viên có Teacher profile, sắp xếp theo alphabet
-    teachers = Teacher.objects.select_related('user').filter(is_active=True).order_by('user__first_name', 'user__last_name')
-    context = {'teachers': teachers}
-    return render(request, "students/teacher-list.html", context)
+    """
+    Hiển thị danh sách tất cả giáo viên
+    """
+    teachers = Teacher.objects.select_related('user').order_by('teacher_id')
+    
+    # Lọc theo trạng thái
+    status = request.GET.get('status')
+    if status == 'active':
+        teachers = teachers.filter(is_active=True)
+    elif status == 'inactive':
+        teachers = teachers.filter(is_active=False)
+    
+    # Tìm kiếm
+    search_query = request.GET.get('search')
+    if search_query:
+        teachers = teachers.filter(
+            Q(teacher_id__icontains=search_query) |
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(user__username__icontains=search_query) |
+            Q(specialization__icontains=search_query)
+        )
+    
+    context = {
+        'teachers': teachers,
+        'search_query': search_query,
+        'status_filter': status,
+        'unread_notification': request.user.notification_set.filter(is_read=False)
+    }
+    return render(request, 'students/teacher-list.html', context)
 
 @admin_required
 def add_teacher(request):
@@ -1395,3 +2245,183 @@ def delete_teacher(request, pk):
         messages.success(request, "Đã xóa giáo viên thành công!")
         return redirect('teacher_list')
     return HttpResponseForbidden()
+
+
+@admin_or_teacher_required
+def student_list(request):
+    # 1. Lấy danh sách tất cả các Khối duy nhất để hiển thị trong Dropdown
+    all_grades = Class.objects.values_list('grade_level', flat=True).distinct().order_by('grade_level')
+    
+    # 2. Lấy giá trị khối và lớp được chọn từ request
+    selected_grade = request.GET.get('grade')
+    selected_class_id = request.GET.get('class')
+    selected_class = None
+    
+    # 3. Logic lọc học sinh và lớp
+    if request.user.is_admin:
+        classes_query = Class.objects.all()
+        student_query = Student.objects.filter(is_active=True)
+    else:
+        classes_query = Class.objects.filter(class_teacher=request.user)
+        student_query = Student.objects.filter(student_class__in=classes_query, is_active=True)
+
+    # 4. Áp dụng bộ lọc theo Khối nếu người dùng chọn
+    if selected_grade:
+        classes_query = classes_query.filter(grade_level=selected_grade)
+        student_query = student_query.filter(student_class__grade_level=selected_grade)
+
+    all_classes = classes_query.order_by('class_name')
+
+    # 5. Áp dụng bộ lọc theo Lớp nếu người dùng chọn
+    if selected_class_id:
+        try:
+            selected_class = all_classes.get(id=selected_class_id)
+            student_query = student_query.filter(student_class=selected_class)
+        except Class.DoesNotExist:
+            selected_class = None
+
+    student_list = student_query.select_related('parent', 'student_class').order_by('first_name', 'last_name')
+
+    # 5. Truyền thêm các biến vào context
+    context = {
+        'student_list': student_list,
+        'all_classes': all_classes,
+        'all_grades': all_grades,         # Để lặp trong vòng for g in all_grades
+        'selected_grade': selected_grade, # Để giữ trạng thái 'selected' trong dropdown
+        'selected_class': selected_class,
+        'unread_notification': request.user.notification_set.filter(is_read=False)
+    }
+    return render(request, "students/students.html", context)
+
+
+@student_required
+def student_dashboard(request):
+    """
+    Hiển thị dashboard cho học sinh
+    """
+    student = request.user.student_profile
+    
+    # Lấy thông tin điểm số gần đây
+    recent_grades = Grade.objects.filter(student=student).select_related('subject').order_by('-created_at')[:5]
+    
+    # Lấy thông tin điểm danh gần đây
+    recent_attendance = Attendance.objects.filter(student=student).order_by('-date')[:10]
+    
+    # Tính tỷ lệ điểm danh
+    total_attendance = Attendance.objects.filter(student=student).count()
+    present_count = Attendance.objects.filter(student=student, status='present').count()
+    attendance_rate = (present_count / total_attendance * 100) if total_attendance > 0 else 0
+    
+    # Lấy thông tin lớp học
+    student_class = student.student_class
+    
+    context = {
+        'student': student,
+        'recent_grades': recent_grades,
+        'recent_attendance': recent_attendance,
+        'attendance_rate': round(attendance_rate, 1),
+        'student_class': student_class,
+        'unread_notification': request.user.notification_set.filter(is_read=False)
+    }
+    return render(request, 'students/student-dashboard.html', context)
+
+
+@login_required
+def timetable_list(request):
+    """Hiển thị thời khóa biểu theo quyền hạn"""
+    
+    # Admin: xem toàn bộ thời khóa biểu (giáo viên + học sinh)
+    if request.user.is_admin:
+        # Thời khóa biểu giáo viên
+        teacher_schedules = Schedule.objects.all().select_related('teacher', 'class_obj', 'subject').order_by('teacher', 'day_of_week', 'period')
+        
+        # Group by teacher
+        teacher_timetable = {}
+        for schedule in teacher_schedules:
+            teacher_name = f"{schedule.teacher.first_name} {schedule.teacher.last_name}"
+            if teacher_name not in teacher_timetable:
+                teacher_timetable[teacher_name] = {}
+            key = f"{schedule.day_of_week}_{schedule.period}"
+            teacher_timetable[teacher_name][key] = {
+                'class': schedule.class_obj.class_name,
+                'subject': schedule.subject.subject_name,
+                'room': schedule.room
+            }
+        
+        # Thời khóa biểu lớp
+        class_schedules_list = Schedule.objects.all().select_related('teacher', 'class_obj', 'subject').order_by('class_obj__class_name', 'day_of_week', 'period')
+        
+        # Group by class
+        class_timetable = {}
+        for schedule in class_schedules_list:
+            cls = schedule.class_obj.class_name
+            if cls not in class_timetable:
+                class_timetable[cls] = {}
+            key = f"{schedule.day_of_week}_{schedule.period}"
+            class_timetable[cls][key] = {
+                'subject': schedule.subject.subject_name,
+                'teacher': f"{schedule.teacher.first_name} {schedule.teacher.last_name}" if schedule.teacher else None,
+                'room': schedule.room
+            }
+        
+        context = {
+            'is_admin': True,
+            'teacher_timetable': teacher_timetable,
+            'class_timetable': class_timetable,
+            'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            'periods': ['1', '2', '3', '4', '5']
+        }
+        return render(request, 'students/timetable-list.html', context)
+    
+    # Giáo viên: xem riêng thời khóa biểu của mình
+    elif request.user.is_teacher:
+        # Filter Schedule theo teacher user (vì Schedule.teacher là FK tới User)
+        schedules = Schedule.objects.filter(teacher=request.user).select_related('class_obj', 'subject').order_by('day_of_week', 'period')
+        
+        timetable = {}
+        for schedule in schedules:
+            key = f"{schedule.day_of_week}_{schedule.period}"
+            timetable[key] = {
+                'class': schedule.class_obj.class_name,
+                'subject': schedule.subject.subject_name,
+                'room': schedule.room
+            }
+        
+        context = {
+            'is_teacher': True,
+            'teacher_name': f"{request.user.first_name} {request.user.last_name}",
+            'timetable': timetable,
+            'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            'periods': ['1', '2', '3', '4', '5']
+        }
+        return render(request, 'students/timetable-list.html', context)
+    
+    # Học sinh: xem riêng thời khóa biểu của lớp
+    elif request.user.is_student:
+        try:
+            student = Student.objects.get(user=request.user)
+            schedules = Schedule.objects.filter(class_obj=student.student_class).select_related('teacher', 'subject').order_by('day_of_week', 'period')
+            
+            timetable = {}
+            for schedule in schedules:
+                key = f"{schedule.day_of_week}_{schedule.period}"
+                timetable[key] = {
+                    'subject': schedule.subject.subject_name,
+                    'teacher': f"{schedule.teacher.first_name} {schedule.teacher.last_name}" if schedule.teacher else None,
+                    'room': schedule.room
+                }
+            
+            context = {
+                'is_student': True,
+                'class_name': student.student_class.class_name if student.student_class else 'N/A',
+                'timetable': timetable,
+                'days': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+                'periods': ['1', '2', '3', '4', '5']
+            }
+            return render(request, 'students/timetable-list.html', context)
+        except Student.DoesNotExist:
+            messages.error(request, 'Không tìm thấy thông tin học sinh')
+            return redirect('dashboard')
+    
+    messages.error(request, 'Bạn không có quyền truy cập')
+    return redirect('dashboard')

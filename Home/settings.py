@@ -25,11 +25,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'Home',
     'school',
     'student',
     'home_auth'
 
 ]
+
+AUTH_USER_MODEL = 'home_auth.CustomUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -127,6 +130,8 @@ AUTH_USER_MODEL = 'home_auth.CustomUser'
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend', 
 )
+
+CSRF_FAILURE_VIEW = 'home_auth.views.csrf_failure'
 
 
 

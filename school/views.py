@@ -261,6 +261,49 @@ def dashboard(request):
                 })
         context['class_student_count'] = json.dumps(class_student_count, cls=DecimalEncoder)
         
+        # Thêm thời khóa biểu
+        from student.models import Schedule
+        if selected_class:
+            # Hiển thị thời khóa biểu của lớp được chọn
+            schedules = Schedule.objects.filter(
+                class_obj=selected_class,
+                is_active=True
+            ).select_related('subject', 'teacher').order_by('day_of_week', 'period')
+            context['timetable_class'] = selected_class
+        else:
+            # Hiển thị thời khóa biểu của tất cả lớp (có thể giới hạn số lượng)
+            schedules = Schedule.objects.filter(
+                is_active=True
+            ).select_related('class_obj', 'subject', 'teacher').order_by('class_obj__class_name', 'day_of_week', 'period')[:50]  # Giới hạn 50 bản ghi
+            context['timetable_class'] = None
+        
+        # Tổ chức thời khóa biểu theo ngày và tiết
+        timetable_data = {}
+        days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        periods_order = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+        
+        for schedule in schedules:
+            day = schedule.day_of_week
+            period = schedule.period
+            if day not in timetable_data:
+                timetable_data[day] = {}
+            timetable_data[day][period] = {
+                'subject': schedule.subject.subject_name,
+                'teacher': schedule.teacher.teacher_profile.get_full_name() if hasattr(schedule.teacher, 'teacher_profile') else schedule.teacher.get_full_name(),
+                'room': schedule.room,
+                'class_name': schedule.class_obj.class_name if not selected_class else None
+            }
+        
+        # Tạo danh sách các slot thời khóa biểu để dễ render trong template
+        timetable_slots = []
+        for period in periods_order:
+            period_data = {'period': period, 'days': {}}
+            for day in days_order:
+                period_data['days'][day] = timetable_data.get(day, {}).get(period, None)
+            timetable_slots.append(period_data)
+        
+        context['timetable_slots'] = timetable_slots
+        
         # Logic cho giáo viên đã được xử lý ở trên (filter all_classes và selected_class)
         # Không cần xử lý lại ở đây
     

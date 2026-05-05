@@ -1,0 +1,90 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% block body %}
+<div class="page-wrapper">
+   <div class="content container-fluid">
+      <div class="page-header">
+         <div class="row align-items-center">
+            <div class="col">
+               <h3 class="page-title">Phân chia lớp tuyển sinh lớp 10</h3>
+               <ul class="breadcrumb">
+                  <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                  <li class="breadcrumb-item active">Phân chia lớp</li>
+               </ul>
+            </div>
+         </div>
+      </div>
+
+      <div class="row mb-4">
+         <div class="col-sm-12">
+            <div class="card">
+               <div class="card-body">
+                  <p>Chức năng phân chia lớp dựa trên tổng điểm 3 môn: Toán + Văn + Anh.</p>
+                  <p>Ưu tiên xếp hạng từ cao xuống thấp. Nếu bằng điểm tổng, xét tiếp Toán, Văn, Anh.</p>
+                  <p>Mỗi lớp gồm 40 thí sinh: 10A1, 10A2, 10A3.</p>
+                  <form method="POST">
+                     {% csrf_token %}
+                     <button type="submit" name="action" value="assign" class="btn btn-primary">Chạy phân chia lớp</button>
+                     <button type="submit" name="action" value="sync" class="btn btn-success ml-2" {% if assigned_total == 0 %}disabled{% endif %}>
+                        Đồng bộ học sinh vào hệ thống
+                     </button>
+                  </form>
+                  <div class="mt-3">
+                     <p><strong>Số thí sinh có đủ 3 điểm:</strong> {{ ranked_count }}</p>
+                     <p><strong>Số thí sinh cần có:</strong> {{ total_required }}</p>
+                     {% if cutoff_candidate %}
+                     <p><strong>Điểm chuẩn dự kiến:</strong> {{ cutoff_candidate.total_score }} (SBD: {{ cutoff_candidate.exam_number }})</p>
+                     {% endif %}
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+
+      <div class="row">
+         {% for data in class_data %}
+         <div class="col-md-4">
+            <div class="card">
+               <div class="card-header">
+                  <h5 class="card-title">{{ data.class_obj.class_name }}</h5>
+                  <p class="mb-0">Sĩ số: {{ data.count }} / {{ data.class_obj.capacity }}</p>
+               </div>
+               <div class="card-body">
+                  {% if data.students %}
+                  <div class="table-responsive">
+                     <table class="table table-sm table-striped">
+                        <thead>
+                           <tr>
+                              <th>SBD</th>
+                              <th>Họ tên</th>
+                              <th>Tổng</th>
+                              <th>Toán</th>
+                              <th>Văn</th>
+                              <th>Anh</th>
+                           </tr>
+                        </thead>
+                        <tbody>
+                           {% for candidate in data.students %}
+                           <tr>
+                              <td>{{ candidate.exam_number }}</td>
+                              <td>{{ candidate.full_name }}</td>
+                              <td>{{ candidate.total_score }}</td>
+                              <td>{{ candidate.math_score }}</td>
+                              <td>{{ candidate.literature_score }}</td>
+                              <td>{{ candidate.english_score }}</td>
+                           </tr>
+                           {% endfor %}
+                        </tbody>
+                     </table>
+                  </div>
+                  {% else %}
+                  <p>Chưa có thí sinh nào phân chia vào lớp này.</p>
+                  {% endif %}
+               </div>
+            </div>
+         </div>
+         {% endfor %}
+      </div>
+   </div>
+</div>
+{% endblock %}

@@ -70,7 +70,7 @@
                                     {% for attendance in attendances %}
                                     <tr>
                                        <td>{{ forloop.counter }}</td>
-                                       <td>{{ attendance.student.first_name }} {{ attendance.student.last_name }}</td>
+                                       <td>{{ attendance.student.last_name }} {{ attendance.student.first_name }}</td>
                                        <td>{{ attendance.date|date:"d/m/Y" }}</td>
                                        <td>
                                           <span class="badge badge-{% if attendance.status == 'Present' %}success{% elif attendance.status == 'Absent' %}danger{% elif attendance.status == 'Late' %}warning{% else %}info{% endif %}">

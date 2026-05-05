@@ -2,9 +2,49 @@ from django.db import models
 from django.utils.text import slugify
 from django.utils.crypto import get_random_string
 from django.conf import settings
+from datetime import datetime
+from django.db import transaction
 # Create your models here.
 
-from django.db import models
+def generate_student_code():
+    """
+    Tự động tạo mã học sinh theo định dạng HS{last_two_digits_of_year}XXXX
+    Ví dụ: HS260001, HS260002, ...
+    """
+    current_year = datetime.now().year
+    year_suffix = current_year % 100  # Lấy 2 chữ số cuối
+    prefix = f"HS{year_suffix:02d}"
+
+    with transaction.atomic():
+        # Tìm mã lớn nhất cho năm hiện tại
+        latest_student = Student.objects.filter(
+            student_code__startswith=prefix
+        ).order_by('-student_code').first()
+
+        if latest_student and latest_student.student_code:
+            try:
+                # Trích xuất số cuối (4 chữ số)
+                last_number_str = latest_student.student_code[-4:]
+                last_number = int(last_number_str)
+                next_number = last_number + 1
+            except (ValueError, IndexError):
+                # Nếu mã không hợp lệ, bắt đầu từ 1
+                next_number = 1
+        else:
+            # Nếu chưa có mã nào cho năm này, bắt đầu từ 1
+            next_number = 1
+
+        # Định dạng số thành 4 chữ số
+        formatted_number = f"{next_number:04d}"
+        student_code = f"{prefix}{formatted_number}"
+
+        # Đảm bảo mã chưa tồn tại (thêm kiểm tra cuối cùng)
+        while Student.objects.filter(student_code=student_code).exists():
+            next_number += 1
+            formatted_number = f"{next_number:04d}"
+            student_code = f"{prefix}{formatted_number}"
+
+        return student_code
 
 class Parent(models.Model):
     father_name = models.CharField(max_length=100)
@@ -25,6 +65,7 @@ class Student(models.Model):
     first_name = models.CharField(max_length=100, verbose_name="Tên")
     last_name = models.CharField(max_length=100, verbose_name="Họ")
     student_id = models.CharField(max_length=20, unique=True, verbose_name="Mã học sinh")
+    student_code = models.CharField(max_length=12, unique=True, blank=True, verbose_name="Mã tự động")
     gender = models.CharField(max_length=10, choices=[('Male', 'Nam'), ('Female', 'Nữ'), ('Others', 'Khác')], verbose_name="Giới tính")
     date_of_birth = models.DateField(verbose_name="Ngày sinh")
     student_class = models.ForeignKey('Class', on_delete=models.SET_NULL, null=True, blank=True, related_name='students', verbose_name="Lớp học")
@@ -35,6 +76,7 @@ class Student(models.Model):
     section = models.CharField(max_length=10, blank=True, verbose_name="Khối")
     student_image = models.ImageField(upload_to='students/', blank=True, verbose_name="Ảnh học sinh")
     parent = models.OneToOneField(Parent, on_delete=models.CASCADE, verbose_name="Phụ huynh")
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='student_profile', verbose_name="Tài khoản")
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     is_active = models.BooleanField(default=True, verbose_name="Đang học")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -45,11 +87,47 @@ class Student(models.Model):
         ordering = ['student_class', 'first_name', 'last_name']
 
     def save(self, *args, **kwargs):
+        if not self.student_code:
+            self.student_code = generate_student_code()
         if not self.slug:
             self.slug = slugify(f"{self.first_name}-{self.last_name}-{self.student_id}")
         super(Student, self).save(*args, **kwargs)
+    
+    def get_full_name(self):
+        """Trả về tên đầy đủ theo định dạng: last_name first_name"""
+        first_name = self.first_name or ''
+        last_name = self.last_name or ''
+        full_name = f"{last_name} {first_name}".strip()
+        return full_name if full_name else self.student_id
+    
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.student_id})"
+
+class AdmissionCandidate(models.Model):
+    exam_number = models.CharField(max_length=50, unique=True, verbose_name="Số báo danh")
+    full_name = models.CharField(max_length=200, verbose_name="Họ và tên")
+    date_of_birth = models.DateField(verbose_name="Ngày sinh")
+    previous_school = models.CharField(max_length=255, verbose_name="Trường THCS")
+    math_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Điểm Toán")
+    literature_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Điểm Văn")
+    english_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="Điểm Anh")
+    assigned_class = models.ForeignKey('Class', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_candidates', verbose_name='Lớp phân chia')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Thí sinh tuyển sinh"
+        verbose_name_plural = "Thí sinh tuyển sinh"
+        ordering = ['exam_number']
+
+    @property
+    def total_score(self):
+        if self.math_score is None or self.literature_score is None or self.english_score is None:
+            return None
+        return self.math_score + self.literature_score + self.english_score
+
+    def __str__(self):
+        return f"{self.exam_number} - {self.full_name}"
 
 class Class(models.Model):
     class_name = models.CharField(max_length=50, unique=True, verbose_name="Tên lớp")
@@ -200,7 +278,7 @@ class Teacher(models.Model):
         ordering = ['teacher_id', 'user__first_name', 'user__last_name']
     
     def __str__(self):
-        return f"{self.user.get_full_name() or self.user.username} ({self.teacher_id})"
+        return f"{self.get_full_name()} ({self.teacher_id})"
     
     def get_full_name(self):
         
@@ -212,7 +290,7 @@ class Teacher(models.Model):
             # Tìm và loại bỏ phần trong ngoặc cuối cùng
             last_name = last_name.rsplit('(', 1)[0].strip()
         
-        full_name = f"{first_name} {last_name}".strip()
+        full_name = f"{last_name} {first_name}".strip()
         return full_name if full_name else self.user.username
     
     def get_email(self):
@@ -220,3 +298,48 @@ class Teacher(models.Model):
     
     def get_username(self):
         return self.user.username
+
+class Schedule(models.Model):
+    DAYS_OF_WEEK = [
+        ('Monday', 'Thứ Hai'),
+        ('Tuesday', 'Thứ Ba'),
+        ('Wednesday', 'Thứ Tư'),
+        ('Thursday', 'Thứ Năm'),
+        ('Friday', 'Thứ Sáu'),
+        ('Saturday', 'Thứ Bảy'),
+        ('Sunday', 'Chủ Nhật'),
+    ]
+    
+    PERIODS = [
+        ('1', 'Tiết 1 (7:00-7:45)'),
+        ('2', 'Tiết 2 (7:45-8:30)'),
+        ('3', 'Tiết 3 (8:45-9:30)'),
+        ('4', 'Tiết 4 (9:30-10:15)'),
+        ('5', 'Tiết 5 (10:30-11:15)'),
+        ('6', 'Tiết 6 (11:15-12:00)'),
+        ('7', 'Tiết 7 (13:00-13:45)'),
+        ('8', 'Tiết 8 (13:45-14:30)'),
+        ('9', 'Tiết 9 (14:45-15:30)'),
+        ('10', 'Tiết 10 (15:30-16:15)'),
+    ]
+    
+    class_obj = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='schedules', verbose_name="Lớp học")
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='schedules', verbose_name="Môn học")
+    teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='schedules', verbose_name="Giáo viên")
+    day_of_week = models.CharField(max_length=10, choices=DAYS_OF_WEEK, verbose_name="Ngày trong tuần")
+    period = models.CharField(max_length=2, choices=PERIODS, verbose_name="Tiết học")
+    room = models.CharField(max_length=50, blank=True, verbose_name="Phòng học")
+    academic_year = models.CharField(max_length=20, default='2026-2027', verbose_name="Năm học")
+    semester = models.CharField(max_length=10, choices=[('1', 'Học kỳ I'), ('2', 'Học kỳ II')], default='1', verbose_name="Học kỳ")
+    is_active = models.BooleanField(default=True, verbose_name="Đang hoạt động")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Thời khóa biểu"
+        verbose_name_plural = "Thời khóa biểu"
+        ordering = ['day_of_week', 'period']
+        unique_together = ['class_obj', 'day_of_week', 'period', 'academic_year', 'semester']
+    
+    def __str__(self):
+        return f"{self.class_obj.class_name} - {self.day_of_week} - Tiết {self.period} - {self.subject.subject_name}"

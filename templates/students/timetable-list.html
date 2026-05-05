@@ -1,0 +1,207 @@
+{% extends 'Home/base.html' %}
+{% load static %}
+{% load i18n %}
+{% load custom_tags %}
+
+{% block body %}
+<div class="page-wrapper">
+    <div class="content container-fluid">
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h3 class="page-title">Thời Khóa Biểu</h3>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Trang Chủ</a></li>
+                        <li class="breadcrumb-item active">Thời Khóa Biểu</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN: Xem thời khóa biểu toàn trường -->
+        {% if is_admin %}
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Thời Khóa Biểu Lớp Học</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if class_timetable %}
+                            {% for class_name, timetable_dict in class_timetable.items %}
+                            <div class="mb-4">
+                                <h6 class="font-weight-bold">Lớp {{ class_name }}</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-sm">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th style="width: 80px; text-align: center;">Tiết</th>
+                                                <th style="width: 150px; text-align: center;">Thứ 2</th>
+                                                <th style="width: 150px; text-align: center;">Thứ 3</th>
+                                                <th style="width: 150px; text-align: center;">Thứ 4</th>
+                                                <th style="width: 150px; text-align: center;">Thứ 5</th>
+                                                <th style="width: 150px; text-align: center;">Thứ 6</th>
+                                                <th style="width: 150px; text-align: center;">Thứ 7</th>
+                                                <th style="width: 100px; text-align: center;">CN</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for period in periods %}
+                                            <tr>
+                                                <td style="text-align: center; font-weight: bold;">{{ period }}</td>
+                                                {% for day in days %}
+                                                <td style="height: 80px; vertical-align: middle; text-align: center; padding: 8px;">
+                                                    {% with key=day|concat:period %}
+                                                        {% if timetable_dict|get_item:key %}
+                                                            {% with schedule=timetable_dict|get_item:key %}
+                                                            <strong>{{ schedule.subject }}</strong>
+                                                            <br>
+                                                            <small class="text-muted">{{ schedule.teacher|default:"-" }}</small>
+                                                            {% if schedule.room %}
+                                                            <br><small>{{ schedule.room }}</small>
+                                                            {% endif %}
+                                                            {% endwith %}
+                                                        {% endif %}
+                                                    {% endwith %}
+                                                </td>
+                                                {% endfor %}
+                                                <td style="height: 80px; vertical-align: middle; text-align: center;">
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">Chưa có thời khóa biểu lớp</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GIÁO VIÊN: Xem thời khóa biểu của mình -->
+        {% elif is_teacher %}
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Thời Khóa Biểu - {{ teacher_name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if timetable %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th style="width: 80px; text-align: center;">Tiết</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 2</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 3</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 4</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 5</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 6</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 7</th>
+                                        <th style="width: 100px; text-align: center;">CN</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for period in periods %}
+                                    <tr>
+                                        <td style="text-align: center; font-weight: bold;">{{ period }}</td>
+                                        {% for day in days %}
+                                        <td style="height: 80px; vertical-align: middle; text-align: center; padding: 8px;">
+                                            {% with key=day|concat:period %}
+                                                {% if timetable|get_item:key %}
+                                                    {% with schedule=timetable|get_item:key %}
+                                                    <strong class="text-primary">{{ schedule.subject }}</strong>
+                                                    <br>
+                                                    <span class="badge badge-info">{{ schedule.class }}</span>
+                                                    {% if schedule.room %}
+                                                    <br><small>{{ schedule.room }}</small>
+                                                    {% endif %}
+                                                    {% endwith %}
+                                                {% endif %}
+                                            {% endwith %}
+                                        </td>
+                                        {% endfor %}
+                                        <td style="height: 80px; vertical-align: middle; text-align: center;">
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">Chưa có thời khóa biểu</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HỌC SINH: Xem thời khóa biểu của lớp -->
+        {% elif is_student %}
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Thời Khóa Biểu - Lớp {{ class_name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if timetable %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th style="width: 80px; text-align: center;">Tiết</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 2</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 3</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 4</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 5</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 6</th>
+                                        <th style="width: 150px; text-align: center;">Thứ 7</th>
+                                        <th style="width: 100px; text-align: center;">CN</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for period in periods %}
+                                    <tr>
+                                        <td style="text-align: center; font-weight: bold;">{{ period }}</td>
+                                        {% for day in days %}
+                                        <td style="height: 80px; vertical-align: middle; text-align: center; padding: 8px;">
+                                            {% with key=day|concat:period %}
+                                                {% if timetable|get_item:key %}
+                                                    {% with schedule=timetable|get_item:key %}
+                                                    <strong class="text-success">{{ schedule.subject }}</strong>
+                                                    <br>
+                                                    <small class="text-muted">GV: {{ schedule.teacher|default:"-" }}</small>
+                                                    {% if schedule.room %}
+                                                    <br><small>{{ schedule.room }}</small>
+                                                    {% endif %}
+                                                    {% endwith %}
+                                                {% endif %}
+                                            {% endwith %}
+                                        </td>
+                                        {% endfor %}
+                                        <td style="height: 80px; vertical-align: middle; text-align: center;">
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">Chưa có thời khóa biểu</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
