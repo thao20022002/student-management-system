@@ -15,6 +15,8 @@ from .decorators import admin_required, teacher_required, admin_or_teacher_requi
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 
+from student.services.grade_averages import round_average_score
+
 
 @admin_required
 def add_student(request):
